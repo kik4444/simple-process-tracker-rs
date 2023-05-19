@@ -36,7 +36,7 @@ async fn show_processes() {
             sorted_process_list.sort_by_key(|name| name.to_lowercase());
 
             for process in sorted_process_list {
-                println!("{}", process);
+                println!("{process}");
             }
         }
         Err(e) => println!("{e}"),
