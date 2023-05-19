@@ -1,5 +1,6 @@
 pub mod errors;
 pub mod processes;
+pub mod structures;
 
 use std::path::PathBuf;
 
