@@ -1,6 +1,6 @@
 use clap::Parser;
 use simple_process_tracker_rs::{
-    commands::Commands, process_scanner::get_running_processes, server::launch::launch,
+    commands::Commands, process_scanner::get_running_processes, server,
 };
 
 #[derive(Parser, Debug)]
@@ -23,9 +23,9 @@ async fn main() {
     // https://github.com/kotauskas/interprocess/blob/main/src/local_socket/tokio/stream/mod.rs
 
     match args.command {
-        Commands::Launch => println!("Start everything"),
+        Commands::Launch => server::launch().await,
         Commands::Processes => show_processes().await,
-        cmd => println!("{:#?}", cmd),
+        cmd => println!("{:#?}", cmd), // TODO
     }
 }
 

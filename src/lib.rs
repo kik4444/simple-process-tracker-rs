@@ -3,6 +3,7 @@ use std::path::PathBuf;
 pub mod commands;
 pub mod errors;
 pub mod process_scanner;
+pub mod server;
 pub mod structures;
 
 pub fn get_config_dir() -> Option<PathBuf> {
