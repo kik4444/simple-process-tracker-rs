@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use interprocess::local_socket::tokio::LocalSocketListener;
 use tokio::sync::RwLock;
 
@@ -10,7 +12,10 @@ pub async fn launch() {
     let socket_name = get_socket_name();
 
     if let Err(e) = LocalSocketListener::bind(socket_name) {
-        eprintln!("Cannot start server. {socket_name} already in use -> {e}");
+        eprintln!(
+            "cannot start server on socket {socket_name} -> {}",
+            e.to_string()
+        );
         std::process::exit(1);
     }
 
@@ -26,12 +31,11 @@ pub async fn launch() {
 
     println!("Starting server on socket {socket_name}");
 
-    loop {}
-    // tokio::spawn(async move { update_duration(config, processes).await });
+    tokio::spawn(async move { update_duration(config, processes).await });
 
-    // tokio::spawn(async move { check_running_processes(config, processes).await });
+    tokio::spawn(async move { check_running_processes(config, processes).await });
 
-    // tokio::spawn(async move { get_user_command(config, processes).await });
+    tokio::spawn(async move { get_user_command(config, processes).await });
 }
 
 async fn update_duration(config: &RwLock<Config>, processes: &RwLock<Processes>) {
