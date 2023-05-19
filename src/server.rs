@@ -5,6 +5,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     get_socket_name,
+    process_scanner::get_running_processes,
     structures::{config::Config, process::Processes},
 };
 
@@ -53,7 +54,19 @@ async fn update_duration(config: &RwLock<Config>, processes: &RwLock<Processes>)
 }
 
 async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock<Processes>) {
-    todo!()
+    loop {
+        let sleep_seconds = config.read().await.poll_interval;
+
+        tokio::time::sleep(Duration::from_secs(sleep_seconds)).await;
+
+        if let Ok(process_list) = get_running_processes().await {
+            for process in processes.write().await.0.iter_mut() {
+                process.is_running = process_list.contains(&process.name)
+            }
+        } else {
+            // TODO log error maybe?
+        }
+    }
 }
 
 async fn get_user_command(config: &RwLock<Config>, processes: &RwLock<Processes>) {
