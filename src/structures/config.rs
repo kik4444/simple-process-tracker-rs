@@ -11,7 +11,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn read() -> Result<Config, Box<dyn std::error::Error>> {
+    pub fn read() -> Result<Self, Box<dyn std::error::Error>> {
         let config_path = get_config_file().expect("cannot find config dir");
 
         let reader = std::fs::OpenOptions::new().read(true).open(config_path)?;
