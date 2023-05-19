@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 pub mod commands;
 pub mod errors;
-pub mod processes;
+pub mod process_scanner;
 pub mod structures;
 
 pub fn get_config_file() -> Option<PathBuf> {
