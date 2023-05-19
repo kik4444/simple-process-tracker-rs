@@ -1,9 +1,11 @@
 use std::time::Duration;
 
-use interprocess::local_socket::tokio::LocalSocketListener;
+use futures_lite::{io::BufReader, AsyncReadExt};
+use interprocess::local_socket::tokio::{LocalSocketListener, LocalSocketStream};
 use tokio::sync::RwLock;
 
 use crate::{
+    commands::Commands,
     get_socket_name,
     process_scanner::get_running_processes,
     structures::{config::Config, process::Processes},
@@ -69,10 +71,64 @@ async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock<Pro
     }
 }
 
-async fn get_user_command(config: &RwLock<Config>, processes: &RwLock<Processes>) {
-    todo!()
+async fn get_user_command(config: &'static RwLock<Config>, processes: &'static RwLock<Processes>) {
+    let listener = LocalSocketListener::bind(get_socket_name()).expect("could not bind to socket");
+
+    loop {
+        match listener.accept().await {
+            Ok(stream) => {
+                tokio::spawn(async move { handle_user_command(stream, config, processes).await })
+            }
+            Err(_) => {
+                // TODO log error
+                continue;
+            }
+        };
+    }
 }
 
-async fn handle_user_command(config: &RwLock<Config>, processes: &RwLock<Processes>) {
-    todo!()
+async fn handle_user_command(
+    stream: LocalSocketStream,
+    config: &RwLock<Config>,
+    processes: &RwLock<Processes>,
+) {
+    let (reader, mut writer) = stream.into_split();
+
+    let mut reader = BufReader::new(reader);
+    let mut buffer = String::with_capacity(256);
+    _ = reader.read_to_string(&mut buffer).await;
+
+    let Ok(command) = serde_json::from_str::<Commands>(&buffer) else { return };
+
+    use Commands::*;
+    match command {
+        Launch => todo!(),
+        Show { id, debug } => todo!(),
+        Processes => todo!(),
+        Add {
+            name,
+            icon,
+            duration,
+            notes,
+            added_date,
+        } => todo!(),
+        Option {
+            poll_interval,
+            duration_update_interval,
+            autosave_interval,
+        } => todo!(),
+        Change {
+            id,
+            tracking,
+            icon,
+            duration,
+            notes,
+            added_date,
+        } => todo!(),
+        Duration { command } => todo!(),
+        Export { path, ids } => todo!(),
+        Import { path } => todo!(),
+        Move { command } => todo!(),
+        Quit => todo!(),
+    }
 }
