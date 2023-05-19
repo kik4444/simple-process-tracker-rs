@@ -7,14 +7,14 @@ use crate::get_config_dir;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Process {
-    is_running: bool,
-    is_tracked: bool,
-    icon: String,
-    name: String,
-    duration: u64,
-    notes: String,
-    last_seen_date: NaiveDateTime,
-    added_date: NaiveDateTime,
+    pub is_running: bool,
+    pub is_tracked: bool,
+    pub icon: String,
+    pub name: String,
+    pub duration: u64,
+    pub notes: String,
+    pub last_seen_date: NaiveDateTime,
+    pub added_date: NaiveDateTime,
 }
 
 impl Display for Process {
@@ -35,7 +35,7 @@ impl Display for Process {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Processes(Vec<Process>);
+pub struct Processes(pub Vec<Process>);
 
 impl Processes {
     pub fn read() -> Result<Self, Box<dyn std::error::Error>> {

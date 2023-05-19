@@ -5,9 +5,9 @@ use crate::get_config_dir;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
-    poll_interval: u64,
-    duration_update_interval: u64,
-    autosave_interval: u64,
+    pub poll_interval: u64,
+    pub duration_update_interval: u64,
+    pub autosave_interval: u64,
 }
 
 impl Config {
