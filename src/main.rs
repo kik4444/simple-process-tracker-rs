@@ -1,5 +1,5 @@
 use clap::Parser;
-use simple_process_tracker_rs::Commands;
+use simple_process_tracker_rs::{processes::get_running_processes, Commands};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -22,7 +22,23 @@ async fn main() {
 
     match args.command {
         Commands::Launch => println!("Start everything"),
-        Commands::Processes => println!("List processes"),
+        Commands::Processes => show_processes().await,
         cmd => println!("{:#?}", cmd),
+    }
+}
+
+async fn show_processes() {
+    match get_running_processes().await {
+        Ok(process_list) => {
+            let mut sorted_process_list: Vec<&str> =
+                process_list.iter().map(|name| name.as_str()).collect();
+
+            sorted_process_list.sort_by_key(|name| name.to_lowercase());
+
+            for process in sorted_process_list {
+                println!("{}", process);
+            }
+        }
+        Err(e) => println!("{e}"),
     }
 }

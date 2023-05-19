@@ -1,3 +1,6 @@
+pub mod errors;
+pub mod processes;
+
 use std::path::PathBuf;
 
 use chrono::NaiveDateTime;
