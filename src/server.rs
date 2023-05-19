@@ -1,9 +1,18 @@
+use interprocess::local_socket::tokio::LocalSocketListener;
 use tokio::sync::RwLock;
 
-use crate::structures::{config::Config, process::Processes};
+use crate::{
+    get_socket_name,
+    structures::{config::Config, process::Processes},
+};
 
 pub async fn launch() {
-    // TODO if server already running exit 1
+    let socket_name = get_socket_name();
+
+    if let Err(e) = LocalSocketListener::bind(socket_name) {
+        eprintln!("Cannot start server. {socket_name} already in use -> {e}");
+        std::process::exit(1);
+    }
 
     // Wrap global config in RwLock to allow multiple readers and one writer
     let config = RwLock::new(Config::read().unwrap_or_default());
@@ -15,11 +24,14 @@ pub async fn launch() {
     let processes = RwLock::new(Processes::read().unwrap_or_default());
     let processes = &*Box::leak(Box::new(processes));
 
-    tokio::spawn(async move { update_duration(config, processes).await });
+    println!("Starting server on socket {socket_name}");
 
-    tokio::spawn(async move { check_running_processes(config, processes).await });
+    loop {}
+    // tokio::spawn(async move { update_duration(config, processes).await });
 
-    tokio::spawn(async move { get_user_command(config, processes).await });
+    // tokio::spawn(async move { check_running_processes(config, processes).await });
+
+    // tokio::spawn(async move { get_user_command(config, processes).await });
 }
 
 async fn update_duration(config: &RwLock<Config>, processes: &RwLock<Processes>) {
