@@ -13,7 +13,13 @@ pub enum Commands {
     Launch,
 
     /// Show all processes if no arg is given. If an arg is given, show the process with that ID
-    Show { id: Option<usize> },
+    Show {
+        /// The ID of the process to show. Leave empty for all processes
+        id: Option<usize>,
+        /// Debug print the processes
+        #[arg(short, long, default_value_t = false)]
+        debug: bool,
+    },
 
     /// List all processes running on the system with the names that Simple process tracker will use to check if they are active
     Processes,
