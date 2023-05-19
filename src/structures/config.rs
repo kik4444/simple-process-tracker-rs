@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::get_config_file;
+use crate::get_config_dir;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -12,7 +12,9 @@ pub struct Config {
 
 impl Config {
     pub fn read() -> Result<Self, Box<dyn std::error::Error>> {
-        let config_path = get_config_file().expect("cannot find config dir");
+        let config_path = get_config_dir()
+            .expect("cannot find config dir")
+            .join("config.json");
 
         let reader = std::fs::OpenOptions::new().read(true).open(config_path)?;
 
