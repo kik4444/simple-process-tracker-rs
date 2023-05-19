@@ -39,7 +39,17 @@ pub async fn launch() {
 }
 
 async fn update_duration(config: &RwLock<Config>, processes: &RwLock<Processes>) {
-    todo!()
+    loop {
+        let sleep_seconds = config.read().await.duration_update_interval;
+
+        tokio::time::sleep(Duration::from_secs(sleep_seconds)).await;
+
+        for process in processes.write().await.0.iter_mut() {
+            if process.is_running && process.is_tracked {
+                process.duration += sleep_seconds;
+            }
+        }
+    }
 }
 
 async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock<Processes>) {
