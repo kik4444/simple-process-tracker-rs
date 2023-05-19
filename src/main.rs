@@ -1,5 +1,5 @@
 use clap::Parser;
-use simple_process_tracker_rs::{processes::get_running_processes, Commands};
+use simple_process_tracker_rs::{commands::Commands, processes::get_running_processes};
 
 #[derive(Parser, Debug)]
 #[command(
