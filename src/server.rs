@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
 use futures_lite::{io::BufReader, AsyncReadExt, AsyncWriteExt};
 use interprocess::local_socket::tokio::{LocalSocketListener, LocalSocketStream};
@@ -7,7 +10,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     commands::{self, Commands},
-    get_socket_name, parse_range,
+    get_config_dir, get_socket_name, parse_range,
     process_scanner::get_running_processes,
     string_to_duration,
     structures::{
@@ -34,13 +37,65 @@ pub async fn launch() {
     let processes = RwLock::new(Processes::read().unwrap_or_default());
     let processes = &*Box::leak(Box::new(processes));
 
+    let server_closing = &*Box::leak(Box::new(AtomicBool::new(false)));
+
     println!("Starting server on socket {socket_name}");
 
     tokio::spawn(async move { update_duration(config, processes).await });
 
     tokio::spawn(async move { check_running_processes(config, processes).await });
 
-    get_user_command(config, processes).await;
+    tokio::spawn(async move { autosave_data(config, processes).await });
+
+    get_user_command(config, processes, server_closing).await;
+}
+
+async fn save_data(config: &RwLock<Config>, processes: &RwLock<Processes>) {
+    let config_dir = get_config_dir().expect("cannot find config dir");
+
+    let config_path = config_dir.join("config.json");
+    let config_lock = config_path.with_extension("lock");
+
+    let processes_path = config_dir.join("processes.json");
+    let processes_lock = processes_path.with_extension("lock");
+
+    let config = &*config.read().await;
+    let processes = &processes.read().await.0;
+
+    let mut builder = std::fs::OpenOptions::new();
+    builder.create(true).write(true).truncate(true);
+
+    // We use lock files to prevent a conflict in case this function is called twice simultaneously:
+    // once in the autosave thread and once in the main thread during server close
+    if config_lock.exists() {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+
+    _ = builder.open(&config_lock);
+    let config_file = builder.open(config_path).expect("must open config path");
+    serde_json::to_writer_pretty(config_file, &config).expect("must write");
+    _ = std::fs::remove_file(config_lock);
+
+    if processes_lock.exists() {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+
+    _ = builder.open(&processes_lock);
+    let processes_file = builder
+        .open(processes_path)
+        .expect("must open processes path");
+    serde_json::to_writer_pretty(processes_file, &processes).expect("must write");
+    _ = std::fs::remove_file(processes_lock);
+}
+
+async fn autosave_data(config: &RwLock<Config>, processes: &RwLock<Processes>) {
+    loop {
+        let sleep_seconds = config.read().await.autosave_interval;
+
+        tokio::time::sleep(Duration::from_secs(sleep_seconds)).await;
+
+        save_data(config, processes).await;
+    }
 }
 
 async fn update_duration(config: &RwLock<Config>, processes: &RwLock<Processes>) {
@@ -78,13 +133,19 @@ async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock<Pro
     }
 }
 
-async fn get_user_command(config: &'static RwLock<Config>, processes: &'static RwLock<Processes>) {
+async fn get_user_command(
+    config: &'static RwLock<Config>,
+    processes: &'static RwLock<Processes>,
+    server_closing: &'static AtomicBool,
+) {
     let listener = LocalSocketListener::bind(get_socket_name()).expect("could not bind to socket");
 
     loop {
         match listener.accept().await {
             Ok(conn) => {
-                tokio::spawn(async move { handle_user_command(conn, config, processes).await });
+                tokio::spawn(async move {
+                    handle_user_command(conn, config, processes, server_closing).await
+                });
             }
             Err(e) => {
                 // TODO log error
@@ -98,6 +159,7 @@ async fn handle_user_command(
     conn: LocalSocketStream,
     config: &RwLock<Config>,
     processes: &RwLock<Processes>,
+    server_closing: &AtomicBool,
 ) {
     let (reader, mut writer) = conn.into_split();
 
@@ -116,13 +178,18 @@ async fn handle_user_command(
         Commands::Export(export_cmd) => export_processes(export_cmd, processes).await,
         Commands::Import(_import_cmd) => todo!(),
         Commands::Move(_move_cmd) => todo!(),
-        Commands::Quit => todo!(),
+        Commands::Quit => set_exit_flag(server_closing).await,
 
         _ => unreachable!(),
     };
 
     let serialized = serde_json::to_string(&response).expect("must serialize");
     _ = writer.write_all(serialized.as_bytes()).await;
+
+    if server_closing.load(Ordering::Relaxed) {
+        save_data(config, processes).await;
+        std::process::exit(0)
+    }
 }
 
 async fn show_processes(
@@ -279,4 +346,10 @@ async fn export_processes(
     };
 
     Ok(serde_json::to_string(&targets).expect("must serialize"))
+}
+
+async fn set_exit_flag(server_closing: &AtomicBool) -> Result<String, String> {
+    server_closing.store(true, Ordering::Relaxed);
+
+    Ok("stopping server".into())
 }

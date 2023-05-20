@@ -31,10 +31,6 @@ pub async fn send_command(command: Commands) {
         .await
         .expect("failed getting response");
 
-    if let Commands::Quit = command {
-        std::process::exit(0);
-    }
-
     let response: Result<String, String> = serde_json::from_str(&buffer).expect("must parse");
 
     match command {
