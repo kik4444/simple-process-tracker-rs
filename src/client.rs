@@ -2,7 +2,9 @@ use futures_lite::{io::BufReader, AsyncReadExt, AsyncWriteExt};
 use interprocess::local_socket::tokio::LocalSocketStream;
 
 use crate::{
-    commands::Commands, duration_to_string, get_socket_name, structures::process::Processes,
+    commands::Commands,
+    duration_to_string, get_socket_name,
+    structures::{config::Config, process::Processes},
     ACTIVE_ICON, PAUSED_ICON,
 };
 
@@ -89,6 +91,12 @@ pub async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::E
                 )
             }
         }
+
+        Commands::Settings => {
+            let config: Config = serde_json::from_str(&response?)?;
+            println!("{:#?}", config);
+        }
+
         _ => {
             let (Ok(response) | Err(response)) = response;
             println!("{response}");

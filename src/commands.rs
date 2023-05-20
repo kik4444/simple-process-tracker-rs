@@ -126,6 +126,9 @@ pub enum Commands {
     /// Example: show 0-3,5,7
     View(View),
 
+    /// Show Simple process tracker's configuration
+    Settings,
+
     /// List all processes running on the system with the names that Simple process tracker will use to check if they are active
     Processes,
 

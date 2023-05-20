@@ -34,6 +34,10 @@ pub async fn get_processes(
     Ok(serde_json::to_string(&targets).expect("must serialize"))
 }
 
+pub async fn get_settings(config: &RwLock<Config>) -> Result<String, Box<dyn std::error::Error>> {
+    Ok(serde_json::to_string(&*config.read().await).expect("must serialize"))
+}
+
 pub async fn add_new_process(
     add_cmd: commands::Add,
     processes: &RwLock<Processes>,

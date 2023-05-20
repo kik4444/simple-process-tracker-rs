@@ -16,7 +16,7 @@ use super::{
     background_tasks::save_data,
     user_commands::{
         add_new_process, change_config, change_duration, change_process, get_processes,
-        import_processes, move_process, remove_processes, set_exit_flag,
+        get_settings, import_processes, move_process, remove_processes, set_exit_flag,
     },
 };
 
@@ -89,6 +89,7 @@ async fn handle_user_command(
 
     let response = match command {
         Commands::View(show_cmd) => get_processes(show_cmd.ids, processes).await,
+        Commands::Settings => get_settings(config).await,
         Commands::Remove(remove_cmd) => remove_processes(remove_cmd.id, processes).await,
         Commands::Add(add_cmd) => add_new_process(add_cmd, processes).await,
         Commands::Option(config_cmd) => change_config(config_cmd, config).await,
