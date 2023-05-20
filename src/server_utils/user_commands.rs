@@ -19,7 +19,7 @@ pub async fn get_processes(
     let processes = &processes.read().await.0;
 
     let targets: Vec<&Process> = if let Some(ids) = ids {
-        let range = parse_range(&ids)?;
+        let range = parse_range(&ids).map_err(|e| format!("invalid range {ids} -> {e}"))?;
         processes
             .iter()
             .enumerate()
