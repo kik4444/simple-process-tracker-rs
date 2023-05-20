@@ -1,7 +1,10 @@
 use futures_lite::{io::BufReader, AsyncReadExt, AsyncWriteExt};
 use interprocess::local_socket::tokio::LocalSocketStream;
 
-use crate::{commands::Commands, get_socket_name, structures::process::Processes};
+use crate::{
+    commands::Commands, duration_to_string, get_socket_name, structures::process::Processes,
+    ACTIVE_ICON, PAUSED_ICON,
+};
 
 pub async fn send_command(command: Commands) {
     let conn = LocalSocketStream::connect(get_socket_name())
@@ -35,7 +38,28 @@ pub async fn send_command(command: Commands) {
         if debug {
             println!("{:#?}", processes.0);
         } else {
-            // TODO formatted print with sixel
+            println!("# | Tracking | Icon | Name | Duration | Notes | Last seen | Date added");
+            for (id, process) in processes.0.iter().enumerate() {
+                let tracking_icon = if process.is_tracked {
+                    ACTIVE_ICON
+                } else {
+                    PAUSED_ICON
+                };
+
+                // let icon_image = get_sixel(&process.icon);
+
+                println!(
+                    "{} | {} | {} | {} | {} | {} | {} | {}",
+                    id,
+                    tracking_icon,
+                    "TODO",
+                    process.name,
+                    duration_to_string(process.duration),
+                    process.notes,
+                    process.last_seen_date.format("%Y/%m/%d %H:%M:%S"),
+                    process.added_date.format("%Y/%m/%d %H:%M:%S")
+                );
+            }
         }
     } else {
         let (Ok(response) | Err(response)) = response;
