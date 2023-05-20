@@ -66,11 +66,14 @@ async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock<Pro
 
         tokio::time::sleep(Duration::from_secs(sleep_seconds)).await;
 
-        // TODO update last seen
-
         if let Ok(process_list) = get_running_processes().await {
             for process in processes.write().await.0.iter_mut() {
-                process.is_running = process_list.contains(&process.name)
+                if process_list.contains(&process.name) {
+                    process.is_running = true;
+                    process.last_seen_date = chrono::prelude::Local::now().naive_local();
+                } else {
+                    process.is_running = false;
+                }
             }
         } else {
             // TODO log error maybe?
