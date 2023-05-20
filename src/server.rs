@@ -1,14 +1,19 @@
 use std::time::Duration;
 
-use futures_lite::{io::BufReader, AsyncReadExt};
-use interprocess::local_socket::tokio::{LocalSocketListener, LocalSocketStream};
+use futures_lite::{io::BufReader, AsyncReadExt, AsyncWriteExt};
+use interprocess::local_socket::tokio::{LocalSocketListener, LocalSocketStream, OwnedWriteHalf};
+
 use tokio::sync::RwLock;
 
 use crate::{
     commands::Commands,
     get_socket_name,
     process_scanner::get_running_processes,
-    structures::{config::Config, process::Processes},
+    string_to_duration,
+    structures::{
+        config::Config,
+        process::{Process, Processes},
+    },
 };
 
 pub async fn launch() {
@@ -38,7 +43,7 @@ pub async fn launch() {
 
     tokio::spawn(async move { check_running_processes(config, processes).await });
 
-    tokio::spawn(async move { get_user_command(config, processes).await });
+    get_user_command(config, processes).await;
 }
 
 async fn update_duration(config: &RwLock<Config>, processes: &RwLock<Processes>) {
@@ -61,6 +66,8 @@ async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock<Pro
 
         tokio::time::sleep(Duration::from_secs(sleep_seconds)).await;
 
+        // TODO update last seen
+
         if let Ok(process_list) = get_running_processes().await {
             for process in processes.write().await.0.iter_mut() {
                 process.is_running = process_list.contains(&process.name)
@@ -76,11 +83,12 @@ async fn get_user_command(config: &'static RwLock<Config>, processes: &'static R
 
     loop {
         match listener.accept().await {
-            Ok(stream) => {
-                tokio::spawn(async move { handle_user_command(stream, config, processes).await })
+            Ok(conn) => {
+                tokio::spawn(async move { handle_user_command(conn, config, processes).await })
             }
-            Err(_) => {
+            Err(e) => {
                 // TODO log error
+                eprintln!("{e}");
                 continue;
             }
         };
@@ -88,47 +96,66 @@ async fn get_user_command(config: &'static RwLock<Config>, processes: &'static R
 }
 
 async fn handle_user_command(
-    stream: LocalSocketStream,
+    conn: LocalSocketStream,
     config: &RwLock<Config>,
     processes: &RwLock<Processes>,
 ) {
-    let (reader, mut writer) = stream.into_split();
+    let (reader, writer) = conn.into_split();
 
     let mut reader = BufReader::new(reader);
     let mut buffer = String::with_capacity(256);
     _ = reader.read_to_string(&mut buffer).await;
 
-    let Ok(command) = serde_json::from_str::<Commands>(&buffer) else { return };
+    let command: Commands = serde_json::from_str(&buffer).expect("must not fail");
 
     use Commands::*;
     match command {
-        Launch => todo!(),
-        Show { id, debug } => todo!(),
-        Processes => todo!(),
-        Add {
-            name,
-            icon,
-            duration,
-            notes,
-            added_date,
-        } => todo!(),
-        Option {
-            poll_interval,
-            duration_update_interval,
-            autosave_interval,
-        } => todo!(),
-        Change {
-            id,
-            tracking,
-            icon,
-            duration,
-            notes,
-            added_date,
-        } => todo!(),
-        Duration { command } => todo!(),
-        Export { path, ids } => todo!(),
-        Import { path } => todo!(),
-        Move { command } => todo!(),
+        Show { id, .. } => show_processes(writer, processes, id).await,
+        Add { .. } => add_new_process(processes, command).await,
+        Option { .. } => todo!(),
+        Change { .. } => todo!(),
+        Duration { .. } => todo!(),
+        Export { .. } => todo!(),
+        Import { .. } => todo!(),
+        Move { .. } => todo!(),
         Quit => todo!(),
-    }
+
+        _ => unreachable!(),
+    };
+}
+
+async fn show_processes(
+    mut writer: OwnedWriteHalf,
+    processes: &RwLock<Processes>,
+    id: Option<usize>,
+) {
+    let processes = &processes.read().await.0;
+
+    let target = if let Some(id) = id {
+        processes.get(id).map(|p| vec![p]).unwrap_or_default()
+    } else {
+        processes.iter().collect::<Vec<&Process>>()
+    };
+
+    let serialized = serde_json::to_string(&target).expect("must serialize");
+
+    _ = writer.write_all(serialized.as_bytes()).await;
+}
+
+async fn add_new_process(processes: &RwLock<Processes>, command: Commands) {
+    let Commands::Add { name, icon, duration, notes, added_date } = command else { return };
+
+    let duration = string_to_duration(&duration.unwrap_or_default()).unwrap_or_default();
+    let added_date = added_date.unwrap_or_else(|| chrono::prelude::Local::now().naive_local());
+
+    processes.write().await.0.push(Process {
+        is_running: false,
+        is_tracked: true,
+        icon: icon.unwrap_or_default(),
+        name,
+        duration,
+        notes: notes.unwrap_or_default(),
+        last_seen_date: chrono::NaiveDateTime::from_timestamp_millis(0).expect("0 not in range"),
+        added_date,
+    })
 }
