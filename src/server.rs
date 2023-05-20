@@ -45,7 +45,8 @@ pub async fn launch() {
 
     tokio::spawn(async move { check_running_processes(config, processes).await });
 
-    tokio::spawn(async move { autosave_data(config, processes).await });
+    // Autosave in a blocking thread because it involves disk IO
+    tokio::task::spawn_blocking(move || async move { autosave_data(config, processes).await });
 
     get_user_command(config, processes, server_closing).await;
 }
