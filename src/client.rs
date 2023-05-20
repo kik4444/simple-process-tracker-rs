@@ -33,11 +33,11 @@ pub async fn send_command(command: Commands) {
 
     let response: Result<String, String> = serde_json::from_str(&buffer).expect("must parse");
 
-    if let Commands::Show { debug, .. } = command {
+    if let Commands::Show(show_cmd) = command {
         let processes: Processes =
             serde_json::from_str(&response.expect("always Ok")).expect("must parse");
 
-        if debug {
+        if show_cmd.debug {
             println!("{:#?}", processes.0);
         } else {
             println!("# | Tracking | Icon | Name | Duration | Notes | Last seen | Date added");

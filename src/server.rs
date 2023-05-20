@@ -6,7 +6,7 @@ use interprocess::local_socket::tokio::{LocalSocketListener, LocalSocketStream};
 use tokio::sync::RwLock;
 
 use crate::{
-    commands::Commands,
+    commands::{self, Commands},
     get_socket_name,
     process_scanner::get_running_processes,
     string_to_duration,
@@ -87,12 +87,11 @@ async fn get_user_command(config: &'static RwLock<Config>, processes: &'static R
     loop {
         match listener.accept().await {
             Ok(conn) => {
-                tokio::spawn(async move { handle_user_command(conn, config, processes).await })
+                tokio::spawn(async move { handle_user_command(conn, config, processes).await });
             }
             Err(e) => {
                 // TODO log error
                 eprintln!("{e}");
-                continue;
             }
         };
     }
@@ -111,17 +110,16 @@ async fn handle_user_command(
 
     let command: Commands = serde_json::from_str(&buffer).expect("must not fail");
 
-    use Commands::*;
     let response = match command {
-        Show { id, .. } => show_processes(processes, id).await,
-        Add { .. } => add_new_process(command, processes).await,
-        Option { .. } => change_config(command, config).await,
-        Change { .. } => change_process(command, processes).await,
-        Duration { .. } => change_duration(command, processes).await,
-        Export { .. } => todo!(),
-        Import { .. } => todo!(),
-        Move { .. } => todo!(),
-        Quit => todo!(),
+        Commands::Show(show_cmd) => show_processes(processes, show_cmd.id).await,
+        Commands::Add(add_cmd) => add_new_process(add_cmd, processes).await,
+        Commands::Option(config_cmd) => change_config(config_cmd, config).await,
+        Commands::Change(change_cmd) => change_process(change_cmd, processes).await,
+        Commands::Duration(duration_cmd) => change_duration(duration_cmd, processes).await,
+        Commands::Export(_export_cmd) => todo!(),
+        Commands::Import(_import_cmd) => todo!(),
+        Commands::Move(_move_cmd) => todo!(),
+        Commands::Quit => todo!(),
 
         _ => unreachable!(),
     };
@@ -147,22 +145,20 @@ async fn show_processes(
 }
 
 async fn add_new_process(
-    command: Commands,
+    add_cmd: commands::Add,
     processes: &RwLock<Processes>,
 ) -> Result<String, String> {
-    let Commands::Add { name, icon, duration, notes, added_date } = command else { return Err("".into()) };
-
-    if processes.read().await.contains_process(&name) {
-        return Err(format!("process {name} is already tracked"));
+    if processes.read().await.contains_process(&add_cmd.name) {
+        return Err(format!("process {} is already tracked", add_cmd.name));
     }
 
-    let duration = if let Some(duration) = duration {
+    let duration = if let Some(duration) = add_cmd.duration {
         string_to_duration(&duration).map_err(|_| format!("invalid duration {duration}"))?
     } else {
         0
     };
 
-    let added_date = if let Some(added_date) = added_date {
+    let added_date = if let Some(added_date) = add_cmd.added_date {
         chrono::NaiveDateTime::parse_from_str(&added_date, "%Y/%m/%d %H:%M:%S")
             .map_err(|e| format!("invalid date time {added_date} -> {e}"))?
     } else {
@@ -172,31 +168,32 @@ async fn add_new_process(
     processes.write().await.0.push(Process {
         is_running: false,
         is_tracked: true,
-        icon: icon.unwrap_or_default(),
-        name: name.clone(),
+        icon: add_cmd.icon.unwrap_or_default(),
+        name: add_cmd.name.clone(),
         duration,
-        notes: notes.unwrap_or_default(),
+        notes: add_cmd.notes.unwrap_or_default(),
         last_seen_date: chrono::NaiveDateTime::from_timestamp_millis(0).expect("0 is in range"),
         added_date,
     });
 
-    Ok(format!("Added {name}"))
+    Ok(format!("Added {}", add_cmd.name))
 }
 
-async fn change_config(command: Commands, config: &RwLock<Config>) -> Result<String, String> {
-    let Commands::Option { poll_interval, duration_update_interval, autosave_interval } = command else { return Err("".into()) };
-
+async fn change_config(
+    config_cmd: commands::Config,
+    config: &RwLock<Config>,
+) -> Result<String, String> {
     let mut config = config.write().await;
 
-    if let Some(poll_interval) = poll_interval {
+    if let Some(poll_interval) = config_cmd.poll_interval {
         config.poll_interval = poll_interval;
     }
 
-    if let Some(duration_update_interval) = duration_update_interval {
+    if let Some(duration_update_interval) = config_cmd.duration_update_interval {
         config.duration_update_interval = duration_update_interval;
     }
 
-    if let Some(autosave_interval) = autosave_interval {
+    if let Some(autosave_interval) = config_cmd.autosave_interval {
         config.autosave_interval = autosave_interval;
     }
 
@@ -204,35 +201,33 @@ async fn change_config(command: Commands, config: &RwLock<Config>) -> Result<Str
 }
 
 async fn change_process(
-    command: Commands,
+    change_cmd: commands::Change,
     processes: &RwLock<Processes>,
 ) -> Result<String, String> {
-    let Commands::Change { id, tracking, icon, duration, notes, added_date } = command else { return Err("".into()) };
-
     let processes = &mut processes.write().await.0;
 
     let target = processes
-        .get_mut(id)
-        .ok_or_else(|| format!("invalid ID {id}"))?;
+        .get_mut(change_cmd.id)
+        .ok_or_else(|| format!("invalid ID {}", change_cmd.id))?;
 
-    if let Some(tracking) = tracking {
+    if let Some(tracking) = change_cmd.tracking {
         target.is_tracked = tracking;
     }
 
-    if let Some(icon) = icon {
+    if let Some(icon) = change_cmd.icon {
         target.icon = icon;
     }
 
-    if let Some(duration) = duration {
+    if let Some(duration) = change_cmd.duration {
         target.duration =
             string_to_duration(&duration).map_err(|_| format!("invalid duration {duration}"))?;
     }
 
-    if let Some(notes) = notes {
+    if let Some(notes) = change_cmd.notes {
         target.notes = notes;
     }
 
-    if let Some(added_date) = added_date {
+    if let Some(added_date) = change_cmd.added_date {
         target.added_date = chrono::NaiveDateTime::parse_from_str(&added_date, "%Y/%m/%d %H:%M:%S")
             .map_err(|e| format!("invalid date time {added_date} -> {e}"))?;
     }
@@ -241,8 +236,8 @@ async fn change_process(
 }
 
 async fn change_duration(
-    command: Commands,
-    processes: &RwLock<Processes>,
+    _duration_cmd: commands::Duration,
+    _processes: &RwLock<Processes>,
 ) -> Result<String, String> {
     todo!()
 }
