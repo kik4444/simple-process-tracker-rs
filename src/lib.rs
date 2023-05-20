@@ -6,7 +6,7 @@ pub mod client;
 pub mod commands;
 pub mod errors;
 pub mod process_scanner;
-pub mod server;
+pub mod server_utils;
 pub mod structures;
 
 pub const ACTIVE_ICON: &str = "▶";

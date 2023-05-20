@@ -1,6 +1,6 @@
 use clap::Parser;
 use simple_process_tracker_rs::{
-    client, commands::Commands, process_scanner::get_running_processes, server,
+    client, commands::Commands, process_scanner::get_running_processes, server_utils::server,
 };
 
 #[derive(Parser, Debug)]
