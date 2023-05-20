@@ -20,21 +20,15 @@ pub async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::E
 
     let (reader, mut writer) = conn.into_split();
 
-    let serialized = serde_json::to_string(&command).expect("cannot fail");
-    writer
-        .write_all(serialized.as_bytes())
-        .await
-        .expect("failed writing to server");
+    let serialized = serde_json::to_string(&command)?;
+    writer.write_all(serialized.as_bytes()).await?;
 
     // We must free the writer otherwise the server cannot respond on the pipe to the client
     drop(writer);
 
     let mut reader = BufReader::new(reader);
     let mut buffer = String::with_capacity(256);
-    reader
-        .read_to_string(&mut buffer)
-        .await
-        .expect("failed getting response");
+    reader.read_to_string(&mut buffer).await?;
 
     let response: Result<String, String> = serde_json::from_str(&buffer)
         .map_err(|e| format!("failed parsing server response -> {e}"))?;
@@ -82,7 +76,7 @@ pub async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::E
                         format!("cannot open file {} -> {e}", export_cmd.path.display())
                     })?;
 
-                serde_json::to_writer_pretty(file, &processes).expect("must serialize");
+                serde_json::to_writer_pretty(file, &processes)?;
 
                 println!(
                     "exported {:?} to {}",
