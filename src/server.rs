@@ -171,12 +171,12 @@ async fn handle_user_command(
     let command: Commands = serde_json::from_str(&buffer).expect("must not fail");
 
     let response = match command {
-        Commands::Show(show_cmd) => get_processes(processes, show_cmd.ids).await,
+        Commands::Show(show_cmd) => get_processes(show_cmd.ids, processes).await,
         Commands::Add(add_cmd) => add_new_process(add_cmd, processes).await,
         Commands::Option(config_cmd) => change_config(config_cmd, config).await,
         Commands::Change(change_cmd) => change_process(change_cmd, processes).await,
         Commands::Duration(duration_cmd) => change_duration(duration_cmd, processes).await,
-        Commands::Export(export_cmd) => get_processes(processes, export_cmd.ids).await,
+        Commands::Export(export_cmd) => get_processes(export_cmd.ids, processes).await,
         Commands::Import(_import_cmd) => todo!(),
         Commands::Move(_move_cmd) => todo!(),
         Commands::Quit => set_exit_flag(close_server_flag).await,
@@ -194,8 +194,8 @@ async fn handle_user_command(
 }
 
 async fn get_processes(
-    processes: &RwLock<Processes>,
     ids: Option<String>,
+    processes: &RwLock<Processes>,
 ) -> Result<String, String> {
     let processes = &processes.read().await.0;
 
