@@ -10,6 +10,8 @@ pub struct Config {
     pub autosave_interval: u64,
 }
 
+// TODO validate when reading
+
 impl Config {
     pub fn read() -> Result<Self, Box<dyn std::error::Error>> {
         let config_path = get_config_dir()
