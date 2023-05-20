@@ -22,7 +22,7 @@ async fn main() {
     match args.command {
         Commands::Launch => server::launch().await,
         Commands::Processes => show_processes().await,
-        cmd => client::send_command(cmd).await,
+        cmd => client::handle_user_command(cmd).await,
     }
 }
 

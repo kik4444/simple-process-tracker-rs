@@ -6,12 +6,17 @@ use crate::{
     ACTIVE_ICON, PAUSED_ICON,
 };
 
-pub async fn send_command(command: Commands) {
-    let Ok(conn) = LocalSocketStream::connect(get_socket_name()).await
-    else {
-        eprintln!("server is not running");
+pub async fn handle_user_command(command: Commands) {
+    if let Err(e) = send_command(command).await {
+        eprintln!("{e}");
         std::process::exit(1);
-    };
+    }
+}
+
+pub async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
+    let conn = LocalSocketStream::connect(get_socket_name())
+        .await
+        .map_err(|e| format!("failed connecting to the socket -> {e}"))?;
 
     let (reader, mut writer) = conn.into_split();
 
@@ -31,12 +36,12 @@ pub async fn send_command(command: Commands) {
         .await
         .expect("failed getting response");
 
-    let response: Result<String, String> = serde_json::from_str(&buffer).expect("must parse");
+    let response: Result<String, String> = serde_json::from_str(&buffer)
+        .map_err(|e| format!("failed parsing server response -> {e}"))?;
 
     match command {
         Commands::Show(_) | Commands::Export(_) => {
-            let processes: Processes =
-                serde_json::from_str(&response.expect("always Ok")).expect("must parse");
+            let processes: Processes = serde_json::from_str(&response?)?;
 
             match command {
                 Commands::Show(show_cmd) => {
@@ -73,7 +78,9 @@ pub async fn send_command(command: Commands) {
                         .write(true)
                         .truncate(true)
                         .open(&export_cmd.path)
-                        .expect("cannot open file");
+                        .map_err(|e| {
+                            format!("cannot open file {} -> {e}", export_cmd.path.display())
+                        })?;
 
                     serde_json::to_writer_pretty(file, &processes).expect("must serialize");
 
@@ -96,4 +103,6 @@ pub async fn send_command(command: Commands) {
             println!("{response}");
         }
     };
+
+    Ok(())
 }
