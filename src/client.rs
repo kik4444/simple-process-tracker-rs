@@ -26,13 +26,19 @@ pub async fn send_command(command: Commands) {
         .await
         .expect("failed getting response");
 
+    let response: Result<String, String> = serde_json::from_str(&buffer).expect("must parse");
+
     if let Commands::Show { debug, .. } = command {
-        let processes: Processes = serde_json::from_str(&buffer).expect("must parse");
+        let processes: Processes =
+            serde_json::from_str(&response.expect("always Ok")).expect("must parse");
 
         if debug {
             println!("{:#?}", processes.0);
         } else {
             // TODO formatted print with sixel
         }
+    } else {
+        let (Ok(response) | Err(response)) = response;
+        println!("{}", response);
     }
 }

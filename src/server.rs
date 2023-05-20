@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use futures_lite::{io::BufReader, AsyncReadExt, AsyncWriteExt};
-use interprocess::local_socket::tokio::{LocalSocketListener, LocalSocketStream, OwnedWriteHalf};
+use interprocess::local_socket::tokio::{LocalSocketListener, LocalSocketStream};
 
 use tokio::sync::RwLock;
 
@@ -103,7 +103,7 @@ async fn handle_user_command(
     config: &RwLock<Config>,
     processes: &RwLock<Processes>,
 ) {
-    let (reader, writer) = conn.into_split();
+    let (reader, mut writer) = conn.into_split();
 
     let mut reader = BufReader::new(reader);
     let mut buffer = String::with_capacity(256);
@@ -112,8 +112,8 @@ async fn handle_user_command(
     let command: Commands = serde_json::from_str(&buffer).expect("must not fail");
 
     use Commands::*;
-    match command {
-        Show { id, .. } => show_processes(writer, processes, id).await,
+    let response = match command {
+        Show { id, .. } => show_processes(processes, id).await,
         Add { .. } => add_new_process(processes, command).await,
         Option { .. } => todo!(),
         Change { .. } => todo!(),
@@ -125,13 +125,15 @@ async fn handle_user_command(
 
         _ => unreachable!(),
     };
+
+    let serialized = serde_json::to_string(&response).expect("must serialize");
+    _ = writer.write_all(serialized.as_bytes()).await;
 }
 
 async fn show_processes(
-    mut writer: OwnedWriteHalf,
     processes: &RwLock<Processes>,
     id: Option<usize>,
-) {
+) -> Result<String, String> {
     let processes = &processes.read().await.0;
 
     let target = if let Some(id) = id {
@@ -141,27 +143,42 @@ async fn show_processes(
         processes.iter().collect::<Vec<&Process>>()
     };
 
-    let serialized = serde_json::to_string(&target).expect("must serialize");
-
-    _ = writer.write_all(serialized.as_bytes()).await;
+    Ok(serde_json::to_string(&target).expect("must serialize"))
 }
 
-async fn add_new_process(processes: &RwLock<Processes>, command: Commands) {
-    let Commands::Add { name, icon, duration, notes, added_date } = command else { return };
+async fn add_new_process(
+    processes: &RwLock<Processes>,
+    command: Commands,
+) -> Result<String, String> {
+    let Commands::Add { name, icon, duration, notes, added_date } = command else { return Err("".into()) };
 
-    let duration = string_to_duration(&duration.unwrap_or_default()).unwrap_or_default();
-    let added_date = added_date
-        .and_then(|s| chrono::NaiveDateTime::parse_from_str(&s, "%Y/%m/%d %H:%M:%S").ok())
-        .unwrap_or_else(|| chrono::prelude::Local::now().naive_local());
+    if processes.read().await.contains_process(&name) {
+        return Err(format!("process {name} is already tracked"));
+    }
+
+    let duration = if let Some(duration) = duration {
+        string_to_duration(&duration).map_err(|_| format!("invalid duration {duration}"))?
+    } else {
+        0
+    };
+
+    let added_date = if let Some(added_date) = added_date {
+        chrono::NaiveDateTime::parse_from_str(&added_date, "%Y/%m/%d %H:%M:%S")
+            .map_err(|e| format!("invalid date time {added_date} -> {e}"))?
+    } else {
+        chrono::prelude::Local::now().naive_local()
+    };
 
     processes.write().await.0.push(Process {
         is_running: false,
         is_tracked: true,
         icon: icon.unwrap_or_default(),
-        name,
+        name: name.clone(),
         duration,
         notes: notes.unwrap_or_default(),
         last_seen_date: chrono::NaiveDateTime::from_timestamp_millis(0).expect("0 is in range"),
         added_date,
-    })
+    });
+
+    Ok(format!("Added {name}"))
 }
