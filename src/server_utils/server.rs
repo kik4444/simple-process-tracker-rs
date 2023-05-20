@@ -88,7 +88,7 @@ async fn handle_user_command(
     let command: Commands = serde_json::from_str(&buffer).expect("must not fail");
 
     let response = match command {
-        Commands::Show(show_cmd) => get_processes(show_cmd.ids, processes).await,
+        Commands::View(show_cmd) => get_processes(show_cmd.ids, processes).await,
         Commands::Remove(remove_cmd) => remove_processes(remove_cmd.id, processes).await,
         Commands::Add(add_cmd) => add_new_process(add_cmd, processes).await,
         Commands::Option(config_cmd) => change_config(config_cmd, config).await,

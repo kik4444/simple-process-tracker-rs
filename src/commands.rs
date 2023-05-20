@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
-pub struct Show {
+pub struct View {
     /// The process IDs to show in 0-3,5,7 format
     pub ids: Option<String>,
     /// Debug print the processes
@@ -124,7 +124,7 @@ pub enum Commands {
 
     /// Show all processes if no IDs are given. Otherwise show the processes with the given IDs.
     /// Example: show 0-3,5,7
-    Show(Show),
+    View(View),
 
     /// List all processes running on the system with the names that Simple process tracker will use to check if they are active
     Processes,

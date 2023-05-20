@@ -40,11 +40,11 @@ pub async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::E
         .map_err(|e| format!("failed parsing server response -> {e}"))?;
 
     match command {
-        Commands::Show(_) | Commands::Export(_) => {
+        Commands::View(_) | Commands::Export(_) => {
             let processes: Processes = serde_json::from_str(&response?)?;
 
-            if let Commands::Show(show_cmd) = command {
-                if show_cmd.debug {
+            if let Commands::View(view_cmd) = command {
+                if view_cmd.debug {
                     println!("{:#?}", processes.0);
                 } else {
                     println!(
