@@ -20,7 +20,16 @@ impl Config {
 
         let reader = std::fs::OpenOptions::new().read(true).open(config_path)?;
 
-        Ok(serde_json::from_reader(reader)?)
+        let config: Config = serde_json::from_reader(reader)?;
+
+        if config.poll_interval < 10
+            || config.duration_update_interval < 1
+            || config.autosave_interval < 60
+        {
+            return Err("invalid config interval".into());
+        }
+
+        Ok(config)
     }
 }
 
