@@ -37,7 +37,7 @@ pub async fn launch() {
     let processes = RwLock::new(Processes::read().unwrap_or_default());
     let processes = &*Box::leak(Box::new(processes));
 
-    let server_closing = &*Box::leak(Box::new(AtomicBool::new(false)));
+    let close_server_flag = &*Box::leak(Box::new(AtomicBool::new(false)));
 
     println!("Starting server on socket {socket_name}");
 
@@ -48,7 +48,7 @@ pub async fn launch() {
     // Autosave in a blocking thread because it involves disk IO
     tokio::task::spawn_blocking(move || async move { autosave_data(config, processes).await });
 
-    get_user_command(config, processes, server_closing).await;
+    get_user_command(config, processes, close_server_flag).await;
 }
 
 async fn save_data(config: &RwLock<Config>, processes: &RwLock<Processes>) {
@@ -137,7 +137,7 @@ async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock<Pro
 async fn get_user_command(
     config: &'static RwLock<Config>,
     processes: &'static RwLock<Processes>,
-    server_closing: &'static AtomicBool,
+    close_server_flag: &'static AtomicBool,
 ) {
     let listener = LocalSocketListener::bind(get_socket_name()).expect("could not bind to socket");
 
@@ -145,7 +145,7 @@ async fn get_user_command(
         match listener.accept().await {
             Ok(conn) => {
                 tokio::spawn(async move {
-                    handle_user_command(conn, config, processes, server_closing).await
+                    handle_user_command(conn, config, processes, close_server_flag).await
                 });
             }
             Err(e) => {
@@ -160,7 +160,7 @@ async fn handle_user_command(
     conn: LocalSocketStream,
     config: &RwLock<Config>,
     processes: &RwLock<Processes>,
-    server_closing: &AtomicBool,
+    close_server_flag: &AtomicBool,
 ) {
     let (reader, mut writer) = conn.into_split();
 
@@ -179,7 +179,7 @@ async fn handle_user_command(
         Commands::Export(export_cmd) => export_processes(export_cmd, processes).await,
         Commands::Import(_import_cmd) => todo!(),
         Commands::Move(_move_cmd) => todo!(),
-        Commands::Quit => set_exit_flag(server_closing).await,
+        Commands::Quit => set_exit_flag(close_server_flag).await,
 
         _ => unreachable!(),
     };
@@ -187,7 +187,7 @@ async fn handle_user_command(
     let serialized = serde_json::to_string(&response).expect("must serialize");
     _ = writer.write_all(serialized.as_bytes()).await;
 
-    if server_closing.load(Ordering::Relaxed) {
+    if close_server_flag.load(Ordering::Relaxed) {
         save_data(config, processes).await;
         std::process::exit(0)
     }
@@ -349,8 +349,8 @@ async fn export_processes(
     Ok(serde_json::to_string(&targets).expect("must serialize"))
 }
 
-async fn set_exit_flag(server_closing: &AtomicBool) -> Result<String, String> {
-    server_closing.store(true, Ordering::Relaxed);
+async fn set_exit_flag(close_server_flag: &AtomicBool) -> Result<String, String> {
+    close_server_flag.store(true, Ordering::Relaxed);
 
     Ok("stopping server".into())
 }
