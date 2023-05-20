@@ -10,7 +10,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     commands::{self, Commands},
-    get_config_dir, get_socket_name, parse_range,
+    get_config_dir, get_socket_name, parse_datetime, parse_range,
     process_scanner::get_running_processes,
     string_to_duration,
     structures::{
@@ -184,9 +184,11 @@ async fn handle_user_command(
         Commands::Quit => set_exit_flag(close_server_flag).await,
 
         _ => unreachable!(),
-    };
+    }
+    .map_err(|e| e.to_string());
 
     let serialized = serde_json::to_string(&response).expect("must serialize");
+
     _ = writer.write_all(serialized.as_bytes()).await;
 
     if close_server_flag.load(Ordering::Relaxed) {
@@ -198,11 +200,11 @@ async fn handle_user_command(
 async fn get_processes(
     ids: Option<String>,
     processes: &RwLock<Processes>,
-) -> Result<String, String> {
+) -> Result<String, Box<dyn std::error::Error>> {
     let processes = &processes.read().await.0;
 
     let targets: Vec<&Process> = if let Some(ids) = ids {
-        let range = parse_range(&ids).map_err(|e| e.to_string())?;
+        let range = parse_range(&ids)?;
         processes
             .iter()
             .enumerate()
@@ -220,20 +222,19 @@ async fn get_processes(
 async fn add_new_process(
     add_cmd: commands::Add,
     processes: &RwLock<Processes>,
-) -> Result<String, String> {
+) -> Result<String, Box<dyn std::error::Error>> {
     if processes.read().await.contains_process(&add_cmd.name) {
-        return Err(format!("process {} is already tracked", add_cmd.name));
+        return Err(format!("process {} is already tracked", add_cmd.name).into());
     }
 
     let duration = if let Some(duration) = add_cmd.duration {
-        string_to_duration(&duration).map_err(|_| format!("invalid duration {duration}"))?
+        string_to_duration(&duration)?
     } else {
         0
     };
 
     let added_date = if let Some(added_date) = add_cmd.added_date {
-        chrono::NaiveDateTime::parse_from_str(&added_date, "%Y/%m/%d %H:%M:%S")
-            .map_err(|e| format!("invalid date time {added_date} -> {e}"))?
+        parse_datetime(&added_date)?
     } else {
         chrono::prelude::Local::now().naive_local()
     };
@@ -252,7 +253,10 @@ async fn add_new_process(
     Ok(format!("added {}", add_cmd.name))
 }
 
-async fn remove_processes(id: usize, processes: &RwLock<Processes>) -> Result<String, String> {
+async fn remove_processes(
+    id: usize,
+    processes: &RwLock<Processes>,
+) -> Result<String, Box<dyn std::error::Error>> {
     let removed;
 
     let processes = &mut processes.write().await.0;
@@ -260,7 +264,7 @@ async fn remove_processes(id: usize, processes: &RwLock<Processes>) -> Result<St
     if processes.is_empty() {
         return Err("no processes to remove".into());
     } else if processes.len() - 1 < id {
-        return Err(format!("no process with id {id}"));
+        return Err(format!("no process with id {id}").into());
     } else {
         removed = processes[id].name.clone();
         processes.remove(id);
@@ -272,7 +276,7 @@ async fn remove_processes(id: usize, processes: &RwLock<Processes>) -> Result<St
 async fn change_config(
     config_cmd: commands::Config,
     config: &RwLock<Config>,
-) -> Result<String, String> {
+) -> Result<String, Box<dyn std::error::Error>> {
     let mut config = config.write().await;
 
     if let Some(poll_interval) = config_cmd.poll_interval {
@@ -293,7 +297,7 @@ async fn change_config(
 async fn change_process(
     change_cmd: commands::Change,
     processes: &RwLock<Processes>,
-) -> Result<String, String> {
+) -> Result<String, Box<dyn std::error::Error>> {
     let processes = &mut processes.write().await.0;
 
     let target = processes
@@ -309,8 +313,7 @@ async fn change_process(
     }
 
     if let Some(duration) = change_cmd.duration {
-        target.duration =
-            string_to_duration(&duration).map_err(|_| format!("invalid duration {duration}"))?;
+        target.duration = string_to_duration(&duration)?;
     }
 
     if let Some(notes) = change_cmd.notes {
@@ -318,8 +321,7 @@ async fn change_process(
     }
 
     if let Some(added_date) = change_cmd.added_date {
-        target.added_date = chrono::NaiveDateTime::parse_from_str(&added_date, "%Y/%m/%d %H:%M:%S")
-            .map_err(|e| format!("invalid date time {added_date} -> {e}"))?;
+        target.added_date = parse_datetime(&added_date)?;
     }
 
     Ok(format!("changed {}", target.name))
@@ -328,7 +330,7 @@ async fn change_process(
 async fn change_duration(
     duration_cmd: commands::Duration,
     processes: &RwLock<Processes>,
-) -> Result<String, String> {
+) -> Result<String, Box<dyn std::error::Error>> {
     let processes = &mut processes.write().await.0;
 
     let target = processes
@@ -356,7 +358,7 @@ async fn change_duration(
 async fn import_processes(
     import_cmd: commands::Import,
     processes: &RwLock<Processes>,
-) -> Result<String, String> {
+) -> Result<String, Box<dyn std::error::Error>> {
     let file = std::fs::OpenOptions::new()
         .read(true)
         .open(&import_cmd.path)
@@ -396,16 +398,8 @@ async fn import_processes(
                     name,
                     duration: new_legacy_process.duration,
                     notes: new_legacy_process.notes,
-                    last_seen_date: chrono::NaiveDateTime::parse_from_str(
-                        &new_legacy_process.last_seen,
-                        "%Y/%m/%d %H:%M:%S",
-                    )
-                    .unwrap(),
-                    added_date: chrono::NaiveDateTime::parse_from_str(
-                        &new_legacy_process.date_added,
-                        "%Y/%m/%d %H:%M:%S",
-                    )
-                    .unwrap(),
+                    last_seen_date: parse_datetime(&new_legacy_process.last_seen)?,
+                    added_date: parse_datetime(&new_legacy_process.date_added)?,
                 })
             } else {
                 already_existed.push(name.clone());
@@ -424,7 +418,9 @@ async fn import_processes(
     ))
 }
 
-async fn set_exit_flag(close_server_flag: &AtomicBool) -> Result<String, String> {
+async fn set_exit_flag(
+    close_server_flag: &AtomicBool,
+) -> Result<String, Box<dyn std::error::Error>> {
     close_server_flag.store(true, Ordering::Relaxed);
 
     Ok("stopping server".into())
