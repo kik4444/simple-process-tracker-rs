@@ -180,7 +180,7 @@ async fn handle_user_command(
         Commands::Duration(duration_cmd) => change_duration(duration_cmd, processes).await,
         Commands::Export(export_cmd) => get_processes(export_cmd.ids, processes).await,
         Commands::Import(import_cmd) => import_processes(import_cmd, processes).await,
-        Commands::Move(_move_cmd) => todo!(),
+        Commands::Move(move_cmd) => move_process(move_cmd, processes).await,
         Commands::Quit => set_exit_flag(close_server_flag).await,
 
         _ => unreachable!(),
@@ -416,6 +416,59 @@ async fn import_processes(
             format!(", already tracked {:?}", already_existed)
         }
     ))
+}
+
+async fn move_process(
+    move_cmd: commands::Move,
+    processes: &RwLock<Processes>,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let processes = &mut processes.write().await.0;
+
+    if processes.is_empty() {
+        return Err("no processes to move".into());
+    } else if processes.len() == 1 {
+        return Err("cannot move only one process".into());
+    } else if processes.len() - 1 < move_cmd.id {
+        return Err(format!("no process with id {}", move_cmd.id).into());
+    }
+
+    let range: Box<dyn Iterator<Item = usize>>;
+
+    use commands::MoveDirection::*;
+    match move_cmd.direction {
+        Up | Top => {
+            if move_cmd.id == 0 {
+                return Err(format!("{} already at top", processes[move_cmd.id].name).into());
+            }
+
+            let end = move_cmd.id - 1;
+
+            if let Top = move_cmd.direction {
+                range = Box::new((0..=end).rev())
+            } else {
+                range = Box::new((end..=end).rev())
+            }
+        }
+        Down | Bottom => {
+            if move_cmd.id == processes.len() - 1 {
+                return Err(format!("{} already at bottom", processes[move_cmd.id].name).into());
+            }
+
+            let end = processes.len() - 1;
+
+            if let Bottom = move_cmd.direction {
+                range = Box::new(0..end);
+            } else {
+                range = Box::new(end..=end);
+            }
+        }
+    }
+
+    for i in range {
+        processes.swap(i, i + 1);
+    }
+
+    Ok("WIP".into())
 }
 
 async fn set_exit_flag(
