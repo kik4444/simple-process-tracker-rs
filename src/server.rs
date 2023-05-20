@@ -66,7 +66,7 @@ async fn save_data(config: &RwLock<Config>, processes: &RwLock<Processes>) {
     builder.create(true).write(true).truncate(true);
 
     // We use lock files to prevent a conflict in case this function is called twice simultaneously:
-    // once in the autosave thread and once in the main thread during server close
+    // once in the autosave thread and once in the handle_user_command thread during server close
     if config_lock.exists() {
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
