@@ -32,4 +32,13 @@ impl Processes {
 
         Ok(serde_json::from_reader(reader)?)
     }
+
+    pub fn contains_process(&self, name: &str) -> bool {
+        for process in self.0.iter() {
+            if process.name == name {
+                return true;
+            }
+        }
+        false
+    }
 }
