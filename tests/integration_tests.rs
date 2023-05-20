@@ -26,3 +26,10 @@ fn test_duration_to_string() {
     assert_eq!(duration_to_string(123456), "34:17:36");
     assert_eq!(duration_to_string(0), "00:00:00");
 }
+
+#[test]
+fn test_parse_range() {
+    let res = parse_range("0-3,5,7");
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), vec![0, 1, 2, 3, 5, 7]);
+}

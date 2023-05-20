@@ -46,3 +46,29 @@ pub fn duration_to_string(input: u64) -> String {
 
     format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
+
+pub fn parse_range(input: &str) -> Result<Vec<usize>, Box<dyn std::error::Error>> {
+    let mut output = vec![];
+
+    let ranges: Vec<String> = input.split(',').map(|s| s.to_string()).collect();
+
+    for range in ranges {
+        if range.contains('-') {
+            let parts: Vec<String> = range.split('-').map(|s| s.to_string()).collect();
+
+            if parts.len() != 2 {
+                return Err(format!("invalid range {}", range).into());
+            }
+
+            let (left, right) = (parts[0].parse::<usize>()?, parts[1].parse::<usize>()?);
+
+            for i in left..=right {
+                output.push(i);
+            }
+        } else {
+            output.push(range.parse::<usize>()?)
+        }
+    }
+
+    Ok(output)
+}
