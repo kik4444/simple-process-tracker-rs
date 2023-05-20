@@ -32,6 +32,11 @@ pub struct Add {
 }
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
+pub struct Remove {
+    pub id: usize,
+}
+
+#[derive(Debug, Parser, Serialize, Deserialize)]
 pub struct Config {
     /// How often to check if the tracked processes are still running in seconds
     #[arg(short, long, value_parser = clap::value_parser!(u64).range(10..))]
@@ -123,6 +128,9 @@ pub enum Commands {
 
     /// Add a process to track. Optionally add it with specific options set in advance
     Add(Add),
+
+    /// Remove a process given its ID
+    Remove(Remove),
 
     /// Set options for Simple process tracker
     Option(Config),

@@ -172,6 +172,7 @@ async fn handle_user_command(
 
     let response = match command {
         Commands::Show(show_cmd) => get_processes(show_cmd.ids, processes).await,
+        Commands::Remove(remove_cmd) => remove_processes(remove_cmd.id, processes).await,
         Commands::Add(add_cmd) => add_new_process(add_cmd, processes).await,
         Commands::Option(config_cmd) => change_config(config_cmd, config).await,
         Commands::Change(change_cmd) => change_process(change_cmd, processes).await,
@@ -248,6 +249,23 @@ async fn add_new_process(
     });
 
     Ok(format!("added {}", add_cmd.name))
+}
+
+async fn remove_processes(id: usize, processes: &RwLock<Processes>) -> Result<String, String> {
+    let removed;
+
+    let processes = &mut processes.write().await.0;
+
+    if processes.is_empty() {
+        return Err("no processes to remove".into());
+    } else if processes.len() - 1 < id {
+        return Err(format!("no process with id {id}"));
+    } else {
+        removed = processes[id].name.clone();
+        processes.remove(id);
+    }
+
+    Ok(format!("removed {removed}"))
 }
 
 async fn change_config(
