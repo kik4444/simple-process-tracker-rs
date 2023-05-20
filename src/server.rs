@@ -20,10 +20,7 @@ pub async fn launch() {
     let socket_name = get_socket_name();
 
     if let Err(e) = LocalSocketListener::bind(socket_name) {
-        eprintln!(
-            "cannot start server on socket {socket_name} -> {}",
-            e.to_string()
-        );
+        eprintln!("cannot start server on socket {socket_name} -> {e}");
         std::process::exit(1);
     }
 

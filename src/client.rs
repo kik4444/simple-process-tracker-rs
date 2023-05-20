@@ -92,7 +92,7 @@ pub async fn send_command(command: Commands) {
 
         _ => {
             let (Ok(response) | Err(response)) = response;
-            println!("{}", response);
+            println!("{response}");
         }
     };
 }

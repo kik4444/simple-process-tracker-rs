@@ -57,7 +57,7 @@ pub fn parse_range(input: &str) -> Result<Vec<usize>, Box<dyn std::error::Error>
             let parts: Vec<String> = range.split('-').map(|s| s.to_string()).collect();
 
             if parts.len() != 2 {
-                return Err(format!("invalid range {}", range).into());
+                return Err(format!("invalid range {range}").into());
             }
 
             let (left, right) = (parts[0].parse::<usize>()?, parts[1].parse::<usize>()?);
