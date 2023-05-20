@@ -88,6 +88,9 @@ pub struct Export {
 #[derive(Debug, Parser, Serialize, Deserialize)]
 pub struct Import {
     pub path: PathBuf,
+    /// Whether the provided json is from the old Simple process tracker
+    #[arg(short, long, default_value_t = false)]
+    pub legacy: bool,
 }
 
 #[derive(Debug, Parser, Serialize, Deserialize)]

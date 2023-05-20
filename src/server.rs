@@ -15,6 +15,7 @@ use crate::{
     string_to_duration,
     structures::{
         config::Config,
+        legacy_process::LegacyProcesses,
         process::{Process, Processes},
     },
 };
@@ -178,7 +179,7 @@ async fn handle_user_command(
         Commands::Change(change_cmd) => change_process(change_cmd, processes).await,
         Commands::Duration(duration_cmd) => change_duration(duration_cmd, processes).await,
         Commands::Export(export_cmd) => get_processes(export_cmd.ids, processes).await,
-        Commands::Import(_import_cmd) => todo!(),
+        Commands::Import(import_cmd) => import_processes(import_cmd, processes).await,
         Commands::Move(_move_cmd) => todo!(),
         Commands::Quit => set_exit_flag(close_server_flag).await,
 
@@ -351,6 +352,78 @@ async fn change_duration(
 
     Ok(format!("{action} {amount} seconds for {}", target.name))
 }
+
+async fn import_processes(
+    import_cmd: commands::Import,
+    processes: &RwLock<Processes>,
+) -> Result<String, String> {
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .open(&import_cmd.path)
+        .map_err(|e| format!("cannot open file {} -> {e}", import_cmd.path.display()))?;
+
+    let processes = &mut processes.write().await;
+
+    let (mut newly_added, mut already_existed) = (vec![], vec![]);
+
+    if !import_cmd.legacy {
+        let new_processes: Processes =
+            serde_json::from_reader(file).map_err(|e| format!("error parsing json -> {e}"))?;
+
+        for new_process in new_processes.0 {
+            if !processes.contains_process(&new_process.name) {
+                newly_added.push(new_process.name.clone());
+                processes.0.push(Process {
+                    is_running: false,
+                    ..new_process
+                });
+            } else {
+                already_existed.push(new_process.name.clone());
+            }
+        }
+    } else {
+        let new_legacy_processes: LegacyProcesses =
+            serde_json::from_reader(file).map_err(|e| format!("error parsing json -> {e}"))?;
+
+        for (name, new_legacy_process) in new_legacy_processes.0 {
+            if !processes.contains_process(&name) {
+                newly_added.push(name.clone());
+
+                processes.0.push(Process {
+                    is_running: false,
+                    is_tracked: new_legacy_process.tracking,
+                    icon: new_legacy_process.icon_path,
+                    name,
+                    duration: new_legacy_process.duration,
+                    notes: new_legacy_process.notes,
+                    last_seen_date: chrono::NaiveDateTime::parse_from_str(
+                        &new_legacy_process.last_seen,
+                        "%Y/%m/%d %H:%M:%S",
+                    )
+                    .unwrap(),
+                    added_date: chrono::NaiveDateTime::parse_from_str(
+                        &new_legacy_process.date_added,
+                        "%Y/%m/%d %H:%M:%S",
+                    )
+                    .unwrap(),
+                })
+            } else {
+                already_existed.push(name.clone());
+            }
+        }
+    }
+
+    Ok(format!(
+        "added {:?}{}",
+        newly_added,
+        if already_existed.is_empty() {
+            "".to_string()
+        } else {
+            format!(", already tracked {:?}", already_existed)
+        }
+    ))
+}
+
 async fn set_exit_flag(close_server_flag: &AtomicBool) -> Result<String, String> {
     close_server_flag.store(true, Ordering::Relaxed);
 
