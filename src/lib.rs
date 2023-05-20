@@ -78,3 +78,8 @@ pub fn parse_range(input: &str) -> Result<Vec<usize>, Box<dyn std::error::Error>
 
     Ok(output)
 }
+
+pub fn parse_datetime(input: &str) -> Result<chrono::NaiveDateTime, String> {
+    chrono::NaiveDateTime::parse_from_str(input, "%Y/%m/%d %H:%M:%S")
+        .map_err(|e| format!("invalid date time {input} -> {e}"))
+}
