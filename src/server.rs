@@ -115,8 +115,8 @@ async fn handle_user_command(
     let response = match command {
         Show { id, .. } => show_processes(processes, id).await,
         Add { .. } => add_new_process(processes, command).await,
-        Option { .. } => todo!(),
-        Change { .. } => todo!(),
+        Option { .. } => change_config(command, config).await,
+        Change { .. } => change_process(command, processes).await,
         Duration { .. } => todo!(),
         Export { .. } => todo!(),
         Import { .. } => todo!(),
@@ -181,4 +181,61 @@ async fn add_new_process(
     });
 
     Ok(format!("Added {name}"))
+}
+
+async fn change_config(command: Commands, config: &RwLock<Config>) -> Result<String, String> {
+    let Commands::Option { poll_interval, duration_update_interval, autosave_interval } = command else { return Err("".into()) };
+
+    let mut config = config.write().await;
+
+    if let Some(poll_interval) = poll_interval {
+        config.poll_interval = poll_interval;
+    }
+
+    if let Some(duration_update_interval) = duration_update_interval {
+        config.duration_update_interval = duration_update_interval;
+    }
+
+    if let Some(autosave_interval) = autosave_interval {
+        config.autosave_interval = autosave_interval;
+    }
+
+    Ok("Changed config".into())
+}
+
+async fn change_process(
+    command: Commands,
+    processes: &RwLock<Processes>,
+) -> Result<String, String> {
+    let Commands::Change { id, tracking, icon, duration, notes, added_date } = command else { return Err("".into()) };
+
+    let processes = &mut processes.write().await.0;
+
+    let target = processes
+        .get_mut(id)
+        .ok_or_else(|| format!("invalid ID {id}"))?;
+
+    if let Some(tracking) = tracking {
+        target.is_tracked = tracking;
+    }
+
+    if let Some(icon) = icon {
+        target.icon = icon;
+    }
+
+    if let Some(duration) = duration {
+        target.duration =
+            string_to_duration(&duration).map_err(|_| format!("invalid duration {duration}"))?;
+    }
+
+    if let Some(notes) = notes {
+        target.notes = notes;
+    }
+
+    if let Some(added_date) = added_date {
+        target.added_date = chrono::NaiveDateTime::parse_from_str(&added_date, "%Y/%m/%d %H:%M:%S")
+            .map_err(|e| format!("invalid date time {added_date} -> {e}"))?;
+    }
+
+    Ok(format!("Changed {}", target.name))
 }
