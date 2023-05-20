@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::path::PathBuf;
 
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
@@ -9,29 +9,12 @@ use crate::get_config_dir;
 pub struct Process {
     pub is_running: bool,
     pub is_tracked: bool,
-    pub icon: String,
+    pub icon: PathBuf,
     pub name: String,
     pub duration: u64,
     pub notes: String,
     pub last_seen_date: NaiveDateTime,
     pub added_date: NaiveDateTime,
-}
-
-impl Display for Process {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} | {} | {} | {} | {} | {} | {} | {}",
-            self.is_running,
-            self.is_tracked,
-            self.icon,
-            self.name,
-            self.duration,
-            self.notes,
-            self.last_seen_date.format("%Y/%m/%d %H:%M:%S"),
-            self.added_date.format("%Y/%m/%d %H:%M:%S")
-        )
-    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
