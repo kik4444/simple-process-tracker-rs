@@ -38,6 +38,6 @@ async fn show_processes() {
                 println!("{process}");
             }
         }
-        Err(e) => println!("{e}"),
+        Err(e) => eprintln!("{e}"),
     }
 }
