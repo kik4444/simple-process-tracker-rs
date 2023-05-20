@@ -25,18 +25,24 @@ pub fn get_socket_name() -> &'static str {
     }
 }
 
-pub fn string_to_duration(input: &str) -> Result<u64, Box<dyn std::error::Error>> {
+pub fn string_to_duration(input: &str) -> Result<u64, String> {
     let parts: Vec<String> = input.split(':').map(|s| s.to_string()).collect();
 
     if parts.len() != 3 {
         return Err("invalid duration input".into());
     }
 
-    let duration = parts[0].parse::<u64>()? * 3600
-        + parts[1].parse::<u64>()? * 60
-        + parts[2].parse::<u64>()?;
+    let (hours, minutes, seconds) =
+        move || -> Result<(u64, u64, u64), Box<dyn std::error::Error>> {
+            Ok((
+                parts[0].parse::<u64>()?,
+                parts[1].parse::<u64>()?,
+                parts[2].parse::<u64>()?,
+            ))
+        }()
+        .map_err(|e| format!("invalid duration {input} -> {e}"))?;
 
-    Ok(duration)
+    Ok(hours * 3600 + minutes * 60 + seconds)
 }
 
 pub fn duration_to_string(input: u64) -> String {
