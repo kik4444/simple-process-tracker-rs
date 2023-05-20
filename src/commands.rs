@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
 pub struct Show {
-    /// The ID of the process to show. Leave empty for all processes
-    pub id: Option<usize>,
+    /// The process IDs to show in 0-3,5,7 format
+    pub ids: Option<String>,
     /// Debug print the processes
     #[arg(short, long, default_value_t = false)]
     pub debug: bool,
@@ -114,7 +114,8 @@ pub enum Commands {
     /// Launch Simple process tracker and begin tracking selected processes
     Launch,
 
-    /// Show all processes if no arg is given. If an arg is given, show the process with that ID
+    /// Show all processes if no IDs are given. Otherwise show the processes with the given IDs.
+    /// Example: show 0-3,5,7
     Show(Show),
 
     /// List all processes running on the system with the names that Simple process tracker will use to check if they are active

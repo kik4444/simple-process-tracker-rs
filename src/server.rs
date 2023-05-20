@@ -171,12 +171,12 @@ async fn handle_user_command(
     let command: Commands = serde_json::from_str(&buffer).expect("must not fail");
 
     let response = match command {
-        Commands::Show(show_cmd) => show_processes(processes, show_cmd.id).await,
+        Commands::Show(show_cmd) => get_processes(processes, show_cmd.ids).await,
         Commands::Add(add_cmd) => add_new_process(add_cmd, processes).await,
         Commands::Option(config_cmd) => change_config(config_cmd, config).await,
         Commands::Change(change_cmd) => change_process(change_cmd, processes).await,
         Commands::Duration(duration_cmd) => change_duration(duration_cmd, processes).await,
-        Commands::Export(export_cmd) => export_processes(export_cmd, processes).await,
+        Commands::Export(export_cmd) => get_processes(processes, export_cmd.ids).await,
         Commands::Import(_import_cmd) => todo!(),
         Commands::Move(_move_cmd) => todo!(),
         Commands::Quit => set_exit_flag(close_server_flag).await,
@@ -193,20 +193,26 @@ async fn handle_user_command(
     }
 }
 
-async fn show_processes(
+async fn get_processes(
     processes: &RwLock<Processes>,
-    id: Option<usize>,
+    ids: Option<String>,
 ) -> Result<String, String> {
     let processes = &processes.read().await.0;
 
-    let target = if let Some(id) = id {
-        processes.get(id).map(|p| vec![p]).unwrap_or_default()
+    let targets: Vec<&Process> = if let Some(ids) = ids {
+        let range = parse_range(&ids).map_err(|e| e.to_string())?;
+        processes
+            .iter()
+            .enumerate()
+            .filter(|(id, _)| range.contains(id))
+            .map(|(_, process)| process)
+            .collect()
     } else {
         // We must make this into an owned Vec of Process references so this type matches with the above
-        processes.iter().collect::<Vec<&Process>>()
+        processes.iter().collect()
     };
 
-    Ok(serde_json::to_string(&target).expect("must serialize"))
+    Ok(serde_json::to_string(&targets).expect("must serialize"))
 }
 
 async fn add_new_process(
@@ -327,28 +333,6 @@ async fn change_duration(
 
     Ok(format!("{action} {amount} seconds for {}", target.name))
 }
-
-async fn export_processes(
-    export_cmd: commands::Export,
-    processes: &RwLock<Processes>,
-) -> Result<String, String> {
-    let processes = &processes.read().await.0;
-
-    let targets: Vec<&Process> = if let Some(ids) = export_cmd.ids {
-        let range = parse_range(&ids).map_err(|e| e.to_string())?;
-        processes
-            .iter()
-            .enumerate()
-            .filter(|(id, _)| range.contains(id))
-            .map(|(_, process)| process)
-            .collect()
-    } else {
-        processes.iter().collect()
-    };
-
-    Ok(serde_json::to_string(&targets).expect("must serialize"))
-}
-
 async fn set_exit_flag(close_server_flag: &AtomicBool) -> Result<String, String> {
     close_server_flag.store(true, Ordering::Relaxed);
 
