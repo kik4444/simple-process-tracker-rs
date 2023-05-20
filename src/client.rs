@@ -7,9 +7,11 @@ use crate::{
 };
 
 pub async fn send_command(command: Commands) {
-    let conn = LocalSocketStream::connect(get_socket_name())
-        .await
-        .expect("could not connect to socket");
+    let Ok(conn) = LocalSocketStream::connect(get_socket_name()).await
+    else {
+        eprintln!("server is not running");
+        std::process::exit(1);
+    };
 
     let (reader, mut writer) = conn.into_split();
 
