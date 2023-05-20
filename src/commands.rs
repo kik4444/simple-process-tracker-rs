@@ -42,13 +42,13 @@ pub enum Commands {
     /// Set options for Simple process tracker
     Option {
         /// How often to check if the tracked processes are still running in seconds
-        #[arg(short, long)]
+        #[arg(short, long, value_parser = clap::value_parser!(u64).range(10..))]
         poll_interval: Option<u64>,
         /// How often to update the durations for processes that are currently running in seconds
-        #[arg(short, long)]
+        #[arg(short, long, value_parser = clap::value_parser!(u64).range(1..))]
         duration_update_interval: Option<u64>,
         /// How often to autosave in case the program quits unexpectedly in seconds
-        #[arg(short, long)]
+        #[arg(short, long, value_parser = clap::value_parser!(u64).range(60..))]
         autosave_interval: Option<u64>,
     },
 
