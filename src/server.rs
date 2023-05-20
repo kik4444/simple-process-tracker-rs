@@ -117,7 +117,7 @@ async fn handle_user_command(
         Add { .. } => add_new_process(command, processes).await,
         Option { .. } => change_config(command, config).await,
         Change { .. } => change_process(command, processes).await,
-        Duration { .. } => todo!(),
+        Duration { .. } => change_duration(command, processes).await,
         Export { .. } => todo!(),
         Import { .. } => todo!(),
         Move { .. } => todo!(),
@@ -238,4 +238,11 @@ async fn change_process(
     }
 
     Ok(format!("Changed {}", target.name))
+}
+
+async fn change_duration(
+    command: Commands,
+    processes: &RwLock<Processes>,
+) -> Result<String, String> {
+    todo!()
 }
