@@ -16,7 +16,7 @@ pub async fn send_command(command: Commands) {
         .await
         .expect("failed writing to server");
 
-    // We must free the writer otherwise the server cannot respond along the pipe to the client
+    // We must free the writer otherwise the server cannot respond on the pipe to the client
     drop(writer);
 
     let mut reader = BufReader::new(reader);
@@ -27,7 +27,7 @@ pub async fn send_command(command: Commands) {
         .expect("failed getting response");
 
     if let Commands::Show { debug, .. } = command {
-        let processes = serde_json::from_str::<Processes>(&buffer).expect("must parse");
+        let processes: Processes = serde_json::from_str(&buffer).expect("must parse");
 
         if debug {
             println!("{:#?}", processes.0);
