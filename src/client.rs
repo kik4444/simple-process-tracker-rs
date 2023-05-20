@@ -43,59 +43,56 @@ pub async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::E
         Commands::Show(_) | Commands::Export(_) => {
             let processes: Processes = serde_json::from_str(&response?)?;
 
-            match command {
-                Commands::Show(show_cmd) => {
-                    if show_cmd.debug {
-                        println!("{:#?}", processes.0);
-                    } else {
-                        println!("# | Tracking | Icon | Name | Duration | Notes | Last seen | Date added");
-                        for (id, process) in processes.0.iter().enumerate() {
-                            let tracking_icon = if process.is_tracked {
-                                ACTIVE_ICON
-                            } else {
-                                PAUSED_ICON
-                            };
+            if let Commands::Show(show_cmd) = command {
+                if show_cmd.debug {
+                    println!("{:#?}", processes.0);
+                } else {
+                    println!(
+                        "# | Tracking | Icon | Name | Duration | Notes | Last seen | Date added"
+                    );
+                    for (id, process) in processes.0.iter().enumerate() {
+                        let tracking_icon = if process.is_tracked {
+                            ACTIVE_ICON
+                        } else {
+                            PAUSED_ICON
+                        };
 
-                            // let icon_image = get_sixel(&process.icon);
+                        // let icon_image = get_sixel(&process.icon);
 
-                            println!(
-                                "{} | {} | {} | {} | {} | {} | {} | {}",
-                                id,
-                                tracking_icon,
-                                "TODO",
-                                process.name,
-                                duration_to_string(process.duration),
-                                process.notes,
-                                process.last_seen_date.format("%Y/%m/%d %H:%M:%S"),
-                                process.added_date.format("%Y/%m/%d %H:%M:%S")
-                            );
-                        }
+                        println!(
+                            "{} | {} | {} | {} | {} | {} | {} | {}",
+                            id,
+                            tracking_icon,
+                            "TODO",
+                            process.name,
+                            duration_to_string(process.duration),
+                            process.notes,
+                            process.last_seen_date.format("%Y/%m/%d %H:%M:%S"),
+                            process.added_date.format("%Y/%m/%d %H:%M:%S")
+                        );
                     }
                 }
-                Commands::Export(export_cmd) => {
-                    let file = std::fs::OpenOptions::new()
-                        .create(true)
-                        .write(true)
-                        .truncate(true)
-                        .open(&export_cmd.path)
-                        .map_err(|e| {
-                            format!("cannot open file {} -> {e}", export_cmd.path.display())
-                        })?;
+            } else if let Commands::Export(export_cmd) = command {
+                let file = std::fs::OpenOptions::new()
+                    .create(true)
+                    .write(true)
+                    .truncate(true)
+                    .open(&export_cmd.path)
+                    .map_err(|e| {
+                        format!("cannot open file {} -> {e}", export_cmd.path.display())
+                    })?;
 
-                    serde_json::to_writer_pretty(file, &processes).expect("must serialize");
+                serde_json::to_writer_pretty(file, &processes).expect("must serialize");
 
-                    println!(
-                        "exported {:?} to {}",
-                        processes
-                            .0
-                            .iter()
-                            .map(|process| process.name.as_str())
-                            .collect::<Vec<&str>>(),
-                        export_cmd.path.display()
-                    )
-                }
-
-                _ => unreachable!(),
+                println!(
+                    "exported {:?} to {}",
+                    processes
+                        .0
+                        .iter()
+                        .map(|process| process.name.as_str())
+                        .collect::<Vec<&str>>(),
+                    export_cmd.path.display()
+                )
             }
         }
         _ => {
