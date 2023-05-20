@@ -7,7 +7,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     commands::{self, Commands},
-    get_socket_name,
+    get_socket_name, parse_range,
     process_scanner::get_running_processes,
     string_to_duration,
     structures::{
@@ -116,7 +116,7 @@ async fn handle_user_command(
         Commands::Option(config_cmd) => change_config(config_cmd, config).await,
         Commands::Change(change_cmd) => change_process(change_cmd, processes).await,
         Commands::Duration(duration_cmd) => change_duration(duration_cmd, processes).await,
-        Commands::Export(_export_cmd) => todo!(),
+        Commands::Export(export_cmd) => export_processes(export_cmd, processes).await,
         Commands::Import(_import_cmd) => todo!(),
         Commands::Move(_move_cmd) => todo!(),
         Commands::Quit => todo!(),
@@ -236,8 +236,50 @@ async fn change_process(
 }
 
 async fn change_duration(
-    _duration_cmd: commands::Duration,
-    _processes: &RwLock<Processes>,
+    duration_cmd: commands::Duration,
+    processes: &RwLock<Processes>,
 ) -> Result<String, String> {
-    todo!()
+    let processes = &mut processes.write().await.0;
+
+    let target = processes
+        .get_mut(duration_cmd.id)
+        .ok_or_else(|| format!("invalid ID {}", duration_cmd.id))?;
+
+    let (action, amount);
+
+    target.duration = match duration_cmd.operation {
+        commands::DurationCalculation::Add { seconds } => {
+            action = "added";
+            amount = seconds;
+            target.duration.saturating_add(seconds)
+        }
+        commands::DurationCalculation::Subtract { seconds } => {
+            action = "subtracted";
+            amount = seconds;
+            target.duration.saturating_sub(seconds)
+        }
+    };
+
+    Ok(format!("{action} {amount} seconds for {}", target.name))
+}
+
+async fn export_processes(
+    export_cmd: commands::Export,
+    processes: &RwLock<Processes>,
+) -> Result<String, String> {
+    let processes = &processes.read().await.0;
+
+    let targets: Vec<&Process> = if let Some(ids) = export_cmd.ids {
+        let range = parse_range(&ids).map_err(|e| e.to_string())?;
+        processes
+            .iter()
+            .enumerate()
+            .filter(|(id, _)| range.contains(id))
+            .map(|(_, process)| process)
+            .collect()
+    } else {
+        processes.iter().collect()
+    };
+
+    Ok(serde_json::to_string(&targets).expect("must serialize"))
 }
