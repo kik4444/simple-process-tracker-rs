@@ -173,7 +173,7 @@ async fn add_new_process(
         added_date,
     });
 
-    Ok(format!("Added {}", add_cmd.name))
+    Ok(format!("added {}", add_cmd.name))
 }
 
 async fn change_config(
@@ -194,7 +194,7 @@ async fn change_config(
         config.autosave_interval = autosave_interval;
     }
 
-    Ok("Changed config".into())
+    Ok("changed config".into())
 }
 
 async fn change_process(
@@ -229,7 +229,7 @@ async fn change_process(
             .map_err(|e| format!("invalid date time {added_date} -> {e}"))?;
     }
 
-    Ok(format!("Changed {}", target.name))
+    Ok(format!("changed {}", target.name))
 }
 
 async fn change_duration(
