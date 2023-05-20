@@ -6,9 +6,7 @@ fn test_string_to_duration() {
 
     assert!(res.is_ok());
 
-    let res = res.unwrap();
-
-    assert_eq!(res, 3600);
+    assert_eq!(res.unwrap(), 3600);
 }
 
 #[test]

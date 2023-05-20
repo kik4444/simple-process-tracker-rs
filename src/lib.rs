@@ -28,14 +28,15 @@ pub fn get_socket_name() -> &'static str {
 pub fn string_to_duration(input: &str) -> Result<u64, Box<dyn std::error::Error>> {
     let parts: Vec<String> = input.split(':').map(|s| s.to_string()).collect();
 
-    if parts.len() == 3 {
-        let duration = parts[0].parse::<u64>()? * 3600
-            + parts[1].parse::<u64>()? * 60
-            + parts[2].parse::<u64>()?;
-        Ok(duration)
-    } else {
-        Err("invalid duration input".into())
+    if parts.len() != 3 {
+        return Err("invalid duration input".into());
     }
+
+    let duration = parts[0].parse::<u64>()? * 3600
+        + parts[1].parse::<u64>()? * 60
+        + parts[2].parse::<u64>()?;
+
+    Ok(duration)
 }
 
 pub fn duration_to_string(input: u64) -> String {
