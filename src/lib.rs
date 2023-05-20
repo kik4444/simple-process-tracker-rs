@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use interprocess::local_socket::NameTypeSupport;
 
+pub mod client;
 pub mod commands;
 pub mod errors;
 pub mod process_scanner;

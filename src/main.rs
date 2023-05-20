@@ -1,6 +1,6 @@
 use clap::Parser;
 use simple_process_tracker_rs::{
-    commands::Commands, process_scanner::get_running_processes, server,
+    client, commands::Commands, process_scanner::get_running_processes, server,
 };
 
 #[derive(Parser, Debug)]
@@ -19,13 +19,10 @@ struct Args {
 async fn main() {
     let args = Args::parse();
 
-    // https://github.com/kotauskas/interprocess/blob/main/src/local_socket/tokio/listener.rs
-    // https://github.com/kotauskas/interprocess/blob/main/src/local_socket/tokio/stream/mod.rs
-
     match args.command {
         Commands::Launch => server::launch().await,
         Commands::Processes => show_processes().await,
-        cmd => println!("{:#?}", cmd), // TODO
+        cmd => client::send_command(cmd).await,
     }
 }
 
