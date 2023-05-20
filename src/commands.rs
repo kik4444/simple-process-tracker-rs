@@ -74,9 +74,15 @@ pub enum Commands {
     },
 
     /// Add or subtract seconds from a process's duration
+    #[command(group(clap::ArgGroup::new("Action").args(["add", "subtract"]).required(true)))]
     Duration {
-        #[command(subcommand)]
-        command: DurationCalculation,
+        id: usize,
+        /// Add seconds to a process's duration
+        #[arg(short, long, default_value_t = false)]
+        add: bool,
+        /// Subtract seconds from a process's duration
+        #[arg(short, long, default_value_t = false)]
+        subtract: bool,
     },
 
     /// Export all processes to the given path if no IDs are given.
@@ -93,28 +99,19 @@ pub enum Commands {
     Import { path: PathBuf },
 
     /// Update a process's ID to move it up, down, top or bottom
+    #[command(group(clap::ArgGroup::new("Action").args(["up", "down", "top", "bottom"]).required(true)))]
     Move {
-        #[command(subcommand)]
-        command: MoveDirection,
+        id: usize,
+        #[arg(short, long, default_value_t = false)]
+        up: bool,
+        #[arg(short, long, default_value_t = false)]
+        down: bool,
+        #[arg(short, long, default_value_t = false)]
+        top: bool,
+        #[arg(short, long, default_value_t = false)]
+        bottom: bool,
     },
 
     /// Save and close Simple process tracker
     Quit,
-}
-
-#[derive(Debug, Subcommand, Serialize, Deserialize)]
-pub enum DurationCalculation {
-    /// Add seconds to a process's duration
-    Add { seconds: u64, id: usize },
-
-    /// Subtract seconds from a process's duration
-    Subtract { seconds: u64, id: usize },
-}
-
-#[derive(Debug, Subcommand, Serialize, Deserialize)]
-pub enum MoveDirection {
-    Up { id: usize },
-    Down { id: usize },
-    Top { id: usize },
-    Bottom { id: usize },
 }
