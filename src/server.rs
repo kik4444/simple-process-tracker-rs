@@ -114,7 +114,7 @@ async fn handle_user_command(
     use Commands::*;
     let response = match command {
         Show { id, .. } => show_processes(processes, id).await,
-        Add { .. } => add_new_process(processes, command).await,
+        Add { .. } => add_new_process(command, processes).await,
         Option { .. } => change_config(command, config).await,
         Change { .. } => change_process(command, processes).await,
         Duration { .. } => todo!(),
@@ -147,8 +147,8 @@ async fn show_processes(
 }
 
 async fn add_new_process(
-    processes: &RwLock<Processes>,
     command: Commands,
+    processes: &RwLock<Processes>,
 ) -> Result<String, String> {
     let Commands::Add { name, icon, duration, notes, added_date } = command else { return Err("".into()) };
 
