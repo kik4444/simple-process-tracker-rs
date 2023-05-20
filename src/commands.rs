@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use chrono::NaiveDateTime;
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +36,7 @@ pub enum Commands {
         notes: Option<String>,
         /// Overwrite the date this process was added in YYYY/MM/DD HH:MM:SS format
         #[arg(short, long)]
-        added_date: Option<NaiveDateTime>,
+        added_date: Option<String>,
     },
 
     /// Set options for Simple process tracker
@@ -71,7 +70,7 @@ pub enum Commands {
         notes: Option<String>,
         /// Overwrite the date this process was added in YYYY/MM/DD HH:MM:SS format
         #[arg(short, long)]
-        added_date: Option<NaiveDateTime>,
+        added_date: Option<String>,
     },
 
     /// Add or subtract seconds from a process's duration

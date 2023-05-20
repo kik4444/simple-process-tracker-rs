@@ -150,7 +150,9 @@ async fn add_new_process(processes: &RwLock<Processes>, command: Commands) {
     let Commands::Add { name, icon, duration, notes, added_date } = command else { return };
 
     let duration = string_to_duration(&duration.unwrap_or_default()).unwrap_or_default();
-    let added_date = added_date.unwrap_or_else(|| chrono::prelude::Local::now().naive_local());
+    let added_date = added_date
+        .and_then(|s| chrono::NaiveDateTime::parse_from_str(&s, "%Y/%m/%d %H:%M:%S").ok())
+        .unwrap_or_else(|| chrono::prelude::Local::now().naive_local());
 
     processes.write().await.0.push(Process {
         is_running: false,
