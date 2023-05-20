@@ -75,6 +75,7 @@ pub enum Commands {
 
     /// Add or subtract seconds from a process's duration
     Duration {
+        id: usize,
         #[command(subcommand)]
         command: DurationCalculation,
     },
@@ -94,6 +95,7 @@ pub enum Commands {
 
     /// Update a process's ID to move it up, down, top or bottom
     Move {
+        id: usize,
         #[command(subcommand)]
         command: MoveDirection,
     },
@@ -105,16 +107,16 @@ pub enum Commands {
 #[derive(Debug, Subcommand, Serialize, Deserialize)]
 pub enum DurationCalculation {
     /// Add seconds to a process's duration
-    Add { seconds: u64, id: usize },
+    Add { seconds: u64 },
 
     /// Subtract seconds from a process's duration
-    Subtract { seconds: u64, id: usize },
+    Subtract { seconds: u64 },
 }
 
 #[derive(Debug, Subcommand, Serialize, Deserialize)]
 pub enum MoveDirection {
-    Up { id: usize },
-    Down { id: usize },
-    Top { id: usize },
-    Bottom { id: usize },
+    Up,
+    Down,
+    Top,
+    Bottom,
 }
