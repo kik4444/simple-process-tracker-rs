@@ -10,7 +10,7 @@ pub async fn send_command(command: Commands) {
 
     let (reader, mut writer) = conn.into_split();
 
-    let serialized = serde_json::to_string::<Commands>(&command).expect("cannot fail");
+    let serialized = serde_json::to_string(&command).expect("cannot fail");
     writer
         .write_all(serialized.as_bytes())
         .await

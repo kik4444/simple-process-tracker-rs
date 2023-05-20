@@ -137,6 +137,7 @@ async fn show_processes(
     let target = if let Some(id) = id {
         processes.get(id).map(|p| vec![p]).unwrap_or_default()
     } else {
+        // We must make this into an owned Vec of Process references so this type matches with the above
         processes.iter().collect::<Vec<&Process>>()
     };
 
@@ -158,7 +159,7 @@ async fn add_new_process(processes: &RwLock<Processes>, command: Commands) {
         name,
         duration,
         notes: notes.unwrap_or_default(),
-        last_seen_date: chrono::NaiveDateTime::from_timestamp_millis(0).expect("0 not in range"),
+        last_seen_date: chrono::NaiveDateTime::from_timestamp_millis(0).expect("0 is in range"),
         added_date,
     })
 }
