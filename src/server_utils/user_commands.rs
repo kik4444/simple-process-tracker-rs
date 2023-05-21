@@ -227,12 +227,11 @@ pub async fn import_processes(
     }
 
     Ok(format!(
-        "added {:?}{}",
-        newly_added,
+        "added {newly_added:?}{}",
         if already_existed.is_empty() {
             "".to_string()
         } else {
-            format!(", already tracked {:?}", already_existed)
+            format!(", already tracked {already_existed:?}")
         }
     ))
 }

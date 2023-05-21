@@ -94,7 +94,7 @@ pub async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::E
 
         Commands::Settings => {
             let config: Config = serde_json::from_str(&response?)?;
-            println!("{:#?}", config);
+            println!("{config:#?}");
         }
 
         _ => {
