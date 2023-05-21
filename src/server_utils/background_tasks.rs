@@ -78,10 +78,9 @@ pub async fn update_duration(config: &RwLock<Config>, processes: &RwLock<Process
 
 pub async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock<Processes>) {
     loop {
-        let sleep_seconds = config.read().await.poll_interval;
-
-        tokio::time::sleep(Duration::from_secs(sleep_seconds)).await;
-
+        // In case a process was running when the server closed, its is_running would be saved as true in the json file.
+        // As a result, when the server starts it might incorrectly update that process's duration before checking
+        // if it was running. Therefore, we check which processes are running first before sleeping
         match get_running_processes().await {
             Ok(process_list) => {
                 for process in processes.write().await.0.iter_mut() {
@@ -94,6 +93,10 @@ pub async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock
                 }
             }
             Err(e) => eprintln!("{e}"),
-        };
+        }
+
+        let sleep_seconds = config.read().await.poll_interval;
+
+        tokio::time::sleep(Duration::from_secs(sleep_seconds)).await;
     }
 }
