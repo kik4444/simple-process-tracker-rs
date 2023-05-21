@@ -20,9 +20,6 @@ pub async fn save_data(
     let processes_path = config_dir.join("processes.json");
     let processes_lock = processes_path.with_extension("lock");
 
-    let config = &*config.read().await;
-    let processes = &processes.read().await.0;
-
     let mut builder = std::fs::OpenOptions::new();
     builder.create(true).write(true).truncate(true);
 
@@ -36,7 +33,7 @@ pub async fn save_data(
     let config_file = builder
         .open(config_path)
         .map_err(|e| format!("cannot open config path -> {e}"))?;
-    serde_json::to_writer_pretty(config_file, &config)?;
+    serde_json::to_writer_pretty(config_file, &*config.read().await)?;
     _ = std::fs::remove_file(config_lock);
 
     if processes_lock.exists() {
@@ -47,7 +44,7 @@ pub async fn save_data(
     let processes_file = builder
         .open(processes_path)
         .map_err(|e| format!("cannot open processes path -> {e}"))?;
-    serde_json::to_writer_pretty(processes_file, &processes)?;
+    serde_json::to_writer_pretty(processes_file, &processes.read().await.0)?;
     _ = std::fs::remove_file(processes_lock);
 
     Ok(())
