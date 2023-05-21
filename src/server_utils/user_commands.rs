@@ -252,6 +252,8 @@ pub async fn move_process(
 
     let range: Box<dyn Iterator<Item = usize>>;
 
+    let moved = processes[move_cmd.id].name.clone();
+
     use commands::MoveDirection::*;
     match move_cmd.direction {
         Up | Top => {
@@ -272,12 +274,10 @@ pub async fn move_process(
                 return Err(format!("{} already at bottom", processes[move_cmd.id].name).into());
             }
 
-            let end = processes.len() - 1;
-
             if let Bottom = move_cmd.direction {
-                range = Box::new(0..end);
+                range = Box::new((move_cmd.id)..(processes.len() - 1));
             } else {
-                range = Box::new(end..=end);
+                range = Box::new((move_cmd.id)..(move_cmd.id + 1));
             }
         }
     }
@@ -286,7 +286,7 @@ pub async fn move_process(
         processes.swap(i, i + 1);
     }
 
-    Ok(format!("moved {}", processes[move_cmd.id].name))
+    Ok(format!("moved {moved}"))
 }
 
 pub async fn set_exit_flag(
