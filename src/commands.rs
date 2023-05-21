@@ -37,6 +37,7 @@ pub struct Remove {
 }
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
+#[group(required = true)]
 pub struct Config {
     /// How often to check if the tracked processes are still running in seconds
     #[arg(short, long, value_parser = clap::value_parser!(u64).range(10..))]
@@ -50,23 +51,24 @@ pub struct Config {
 }
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
+#[clap(group = clap::ArgGroup::new("Action").multiple(true).required(true))]
 pub struct Change {
     /// The ID of the process to change
     pub id: usize,
     /// Set whether the process is currently tracked or not
-    #[arg(short, long)]
+    #[arg(short, long, group = "Action")]
     pub tracking: Option<bool>,
     /// Set the process icon
-    #[arg(short, long)]
+    #[arg(short, long, group = "Action")]
     pub icon: Option<PathBuf>,
     /// Set the process duration in HH:MM:SS
-    #[arg(short, long)]
+    #[arg(short, long, group = "Action")]
     pub duration: Option<String>,
     /// Set notes about this process
-    #[arg(short, long)]
+    #[arg(short, long, group = "Action")]
     pub notes: Option<String>,
     /// Overwrite the date this process was added in YYYY/MM/DD HH:MM:SS format
-    #[arg(short, long)]
+    #[arg(short, long, group = "Action")]
     pub added_date: Option<String>,
 }
 
