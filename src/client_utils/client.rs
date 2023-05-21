@@ -4,7 +4,7 @@ use interprocess::local_socket::tokio::LocalSocketStream;
 use crate::{
     commands::Commands,
     get_socket_name,
-    structures::{config::Config, process::Processes},
+    structures::{config::Config, process::Process},
 };
 
 use super::response_handler::{handle_export_command, handle_view_command};
@@ -38,7 +38,7 @@ async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::Error
 
     match command {
         Commands::View(_) | Commands::Export(_) => {
-            let processes: Processes = serde_json::from_str(&response?)?;
+            let processes: Vec<(usize, Process)> = serde_json::from_str(&response?)?;
 
             match command {
                 Commands::View(view_cmd) => handle_view_command(view_cmd.debug, processes)?,

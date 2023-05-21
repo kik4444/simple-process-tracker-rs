@@ -18,17 +18,19 @@ pub async fn get_processes(
 ) -> Result<String, Box<dyn std::error::Error>> {
     let processes = &processes.read().await.0;
 
-    let targets: Vec<&Process> = if let Some(ids) = ids {
+    // We collect the processes to a Vec<(usize, &Process)> because we want to retain the process's ID
+    // when showing it to the client
+    let targets: Vec<(usize, &Process)> = if let Some(ids) = ids {
         let range = parse_range(&ids).map_err(|e| format!("invalid range {ids} -> {e}"))?;
         processes
             .iter()
             .enumerate()
             .filter(|(id, _)| range.contains(id))
-            .map(|(_, process)| process)
+            .map(|(id, process)| (id, process))
             .collect()
     } else {
         // We must make this into an owned Vec of Process references so this type matches with the above
-        processes.iter().collect()
+        processes.iter().enumerate().collect()
     };
 
     Ok(serde_json::to_string(&targets).expect("must serialize"))

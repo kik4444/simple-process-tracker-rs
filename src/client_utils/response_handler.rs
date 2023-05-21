@@ -5,14 +5,14 @@ use comfy_table::{
     Table,
 };
 
-use crate::{duration_to_string, structures::process::Processes, ACTIVE_ICON, PAUSED_ICON};
+use crate::{duration_to_string, structures::process::Process, ACTIVE_ICON, PAUSED_ICON};
 
 pub fn handle_view_command(
     debug: bool,
-    processes: Processes,
+    processes: Vec<(usize, Process)>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if debug {
-        println!("{:#?}", processes.0);
+        println!("{:#?}", processes);
     } else {
         let mut table = Table::new();
 
@@ -32,7 +32,7 @@ pub fn handle_view_command(
             "Date added",
         ]);
 
-        for (id, process) in processes.0.iter().enumerate() {
+        for (id, process) in processes {
             let tracking_icon = if process.is_tracked {
                 ACTIVE_ICON
             } else {
@@ -65,7 +65,7 @@ pub fn handle_view_command(
 
 pub fn handle_export_command(
     export_path: &Path,
-    processes: Processes,
+    processes: Vec<(usize, Process)>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let file = std::fs::OpenOptions::new()
         .create(true)
@@ -74,12 +74,13 @@ pub fn handle_export_command(
         .open(export_path)
         .map_err(|e| format!("cannot open file {} -> {e}", export_path.display()))?;
 
+    let processes: Vec<Process> = processes.into_iter().map(|(_, process)| process).collect();
+
     serde_json::to_writer_pretty(file, &processes)?;
 
     println!(
         "exported {:?} to {}",
         processes
-            .0
             .iter()
             .map(|process| process.name.as_str())
             .collect::<Vec<&str>>(),
