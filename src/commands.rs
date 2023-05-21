@@ -56,7 +56,7 @@ pub struct Change {
     /// The ID of the process to change
     pub id: usize,
     /// Set whether the process is currently tracked or not
-    #[arg(short, long, group = "Action")]
+    #[arg(short, long, group = "Action", value_parser = clap::builder::BoolishValueParser::new())]
     pub tracking: Option<bool>,
     /// Set the process icon
     #[arg(short, long, group = "Action")]
