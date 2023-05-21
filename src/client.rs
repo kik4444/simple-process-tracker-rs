@@ -18,7 +18,7 @@ pub async fn handle_user_command(command: Commands) {
 pub async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::Error>> {
     let conn = LocalSocketStream::connect(get_socket_name())
         .await
-        .map_err(|e| format!("failed connecting to the socket -> {e}"))?;
+        .map_err(|e| format!("server may not be running -> {e}"))?;
 
     let (reader, mut writer) = conn.into_split();
 
