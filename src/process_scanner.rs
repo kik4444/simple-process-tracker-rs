@@ -1,12 +1,11 @@
 use std::collections::HashSet;
-
-use snafu::ResultExt;
-
-use crate::errors::process_error::*;
+use std::error::Error;
 
 #[cfg(target_os = "linux")]
-pub async fn get_running_processes() -> Result<HashSet<String>, ProcessError> {
-    let mut pids = tokio::fs::read_dir("/proc").await.context(ProcSnafu)?;
+pub async fn get_running_processes() -> Result<HashSet<String>, Box<dyn Error + Send + Sync>> {
+    let mut pids = tokio::fs::read_dir("/proc")
+        .await
+        .map_err(|e| format!("error reading /proc -> {e}"))?;
 
     let mut process_list = HashSet::new();
 
