@@ -109,7 +109,7 @@ async fn handle_user_command(
     _ = writer.write_all(serialized.as_bytes()).await;
 
     if close_server_flag.load(Ordering::Relaxed) {
-        save_data(config, processes).await;
+        _ = save_data(config, processes).await;
         std::process::exit(0)
     }
 }

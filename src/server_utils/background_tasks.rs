@@ -8,8 +8,11 @@ use crate::{
     structures::{config::Config, process::Processes},
 };
 
-pub async fn save_data(config: &RwLock<Config>, processes: &RwLock<Processes>) {
-    let config_dir = get_config_dir().expect("cannot find config dir");
+pub async fn save_data(
+    config: &RwLock<Config>,
+    processes: &RwLock<Processes>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let config_dir = get_config_dir().ok_or_else(|| "cannot find config dir".to_string())?;
 
     let config_path = config_dir.join("config.json");
     let config_lock = config_path.with_extension("lock");
@@ -30,8 +33,10 @@ pub async fn save_data(config: &RwLock<Config>, processes: &RwLock<Processes>) {
     }
 
     _ = builder.open(&config_lock);
-    let config_file = builder.open(config_path).expect("must open config path");
-    serde_json::to_writer_pretty(config_file, &config).expect("must write");
+    let config_file = builder
+        .open(config_path)
+        .map_err(|e| format!("cannot open config path -> {e}"))?;
+    serde_json::to_writer_pretty(config_file, &config)?;
     _ = std::fs::remove_file(config_lock);
 
     if processes_lock.exists() {
@@ -41,9 +46,11 @@ pub async fn save_data(config: &RwLock<Config>, processes: &RwLock<Processes>) {
     _ = builder.open(&processes_lock);
     let processes_file = builder
         .open(processes_path)
-        .expect("must open processes path");
-    serde_json::to_writer_pretty(processes_file, &processes).expect("must write");
+        .map_err(|e| format!("cannot open processes path -> {e}"))?;
+    serde_json::to_writer_pretty(processes_file, &processes)?;
     _ = std::fs::remove_file(processes_lock);
+
+    Ok(())
 }
 
 pub async fn autosave_data(config: &RwLock<Config>, processes: &RwLock<Processes>) {
@@ -52,7 +59,9 @@ pub async fn autosave_data(config: &RwLock<Config>, processes: &RwLock<Processes
 
         tokio::time::sleep(Duration::from_secs(sleep_seconds)).await;
 
-        save_data(config, processes).await;
+        if let Err(e) = save_data(config, processes).await {
+            eprintln!("{e}");
+        };
     }
 }
 
