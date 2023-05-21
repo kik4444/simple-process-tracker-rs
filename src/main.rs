@@ -1,6 +1,8 @@
 use clap::Parser;
 use simple_process_tracker_rs::{
-    client_utils::client, commands::Commands, process_scanner::get_running_processes,
+    client_utils::client,
+    commands::{self, Commands},
+    process_scanner::get_running_processes,
     server_utils::server,
 };
 
@@ -13,14 +15,23 @@ use simple_process_tracker_rs::{
 #[command(infer_subcommands = true)]
 struct Args {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
 
-    match args.command {
+    let command = if let Some(command) = args.command {
+        command
+    } else {
+        Commands::View(commands::View {
+            ids: None,
+            debug: false,
+        })
+    };
+
+    match command {
         Commands::Launch => server::launch().await,
         Commands::Processes => show_processes().await,
         cmd => client::handle_user_command(cmd).await,
