@@ -58,7 +58,7 @@ pub async fn autosave_data(config: &RwLock<Config>, processes: &RwLock<Processes
 
         if let Err(e) = save_data(config, processes).await {
             eprintln!("{e}");
-        };
+        }
     }
 }
 

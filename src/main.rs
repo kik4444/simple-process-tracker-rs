@@ -22,16 +22,10 @@ struct Args {
 async fn main() {
     let args = Args::parse();
 
-    let command = if let Some(command) = args.command {
-        command
-    } else {
-        Commands::View(commands::View {
-            ids: None,
-            debug: false,
-        })
-    };
-
-    match command {
+    match args.command.unwrap_or(Commands::View(commands::View {
+        ids: None,
+        debug: false,
+    })) {
         Commands::Launch => server::launch().await,
         Commands::Processes => show_processes().await,
         cmd => client::handle_user_command(cmd).await,

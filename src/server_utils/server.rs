@@ -68,7 +68,7 @@ async fn get_user_command(
             Err(e) => {
                 eprintln!("{e}");
             }
-        };
+        }
     }
 }
 

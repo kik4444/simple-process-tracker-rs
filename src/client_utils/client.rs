@@ -45,7 +45,7 @@ async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::Error
                 Commands::Export(export_cmd) => handle_export_command(&export_cmd.path, processes)?,
 
                 _ => unreachable!(),
-            };
+            }
         }
 
         Commands::Settings => {
@@ -57,7 +57,7 @@ async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::Error
             let (Ok(response) | Err(response)) = response;
             println!("{response}");
         }
-    };
+    }
 
     Ok(())
 }
