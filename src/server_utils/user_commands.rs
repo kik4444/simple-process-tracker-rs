@@ -3,8 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::RwLock;
 
 use crate::{
-    commands::{self},
-    parse_datetime, parse_range, string_to_duration,
+    commands, parse_datetime, parse_range, string_to_duration,
     structures::{
         config::Config,
         legacy_process::LegacyProcesses,
