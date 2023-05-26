@@ -40,13 +40,13 @@ pub struct Remove {
 #[group(required = true)]
 pub struct Config {
     /// How often to check if the tracked processes are still running in seconds
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(10..))]
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(crate::MIN_POLL_INTERVAL..))]
     pub poll_interval: Option<u64>,
     /// How often to update the durations for processes that are currently running in seconds
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(1..))]
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(crate::MIN_DURATION_UPDATE_INTERVAL..))]
     pub duration_update_interval: Option<u64>,
     /// How often to autosave in case the program quits unexpectedly in seconds
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(60..))]
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(crate::MIN_AUTOSAVE_INTERVAL..))]
     pub autosave_interval: Option<u64>,
 }
 

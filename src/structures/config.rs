@@ -20,9 +20,9 @@ impl Config {
 
         let config: Config = serde_json::from_reader(reader)?;
 
-        if config.poll_interval < 10
-            || config.duration_update_interval < 1
-            || config.autosave_interval < 60
+        if config.poll_interval < crate::MIN_POLL_INTERVAL
+            || config.duration_update_interval < crate::MIN_DURATION_UPDATE_INTERVAL
+            || config.autosave_interval < crate::MIN_AUTOSAVE_INTERVAL
         {
             return Err("invalid config interval".into());
         }

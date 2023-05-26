@@ -101,14 +101,35 @@ pub async fn change_config(
     let mut config = config.write().await;
 
     if let Some(poll_interval) = config_cmd.poll_interval {
+        if poll_interval < crate::MIN_POLL_INTERVAL {
+            return Err(format!(
+                "invalid poll interval -> min {}, got {poll_interval}",
+                crate::MIN_POLL_INTERVAL
+            )
+            .into());
+        }
         config.poll_interval = poll_interval;
     }
 
     if let Some(duration_update_interval) = config_cmd.duration_update_interval {
+        if duration_update_interval < crate::MIN_DURATION_UPDATE_INTERVAL {
+            return Err(format!(
+                "invalid duration update interval -> min {}, got {duration_update_interval}",
+                crate::MIN_DURATION_UPDATE_INTERVAL
+            )
+            .into());
+        }
         config.duration_update_interval = duration_update_interval;
     }
 
     if let Some(autosave_interval) = config_cmd.autosave_interval {
+        if autosave_interval < crate::MIN_AUTOSAVE_INTERVAL {
+            return Err(format!(
+                "invalid autosave interval -> min {}, got {autosave_interval}",
+                crate::MIN_AUTOSAVE_INTERVAL
+            )
+            .into());
+        }
         config.autosave_interval = autosave_interval;
     }
 

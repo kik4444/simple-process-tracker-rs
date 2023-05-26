@@ -10,6 +10,9 @@ pub mod structures;
 
 pub const ACTIVE_ICON: &str = "✅";
 pub const PAUSED_ICON: &str = "❌";
+pub const MIN_POLL_INTERVAL: u64 = 10;
+pub const MIN_DURATION_UPDATE_INTERVAL: u64 = 1;
+pub const MIN_AUTOSAVE_INTERVAL: u64 = 60;
 
 pub fn get_config_dir() -> Option<PathBuf> {
     dirs::config_dir().map(|dir| dir.join("simple-process-tracker"))
