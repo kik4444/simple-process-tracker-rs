@@ -22,14 +22,14 @@ pub fn handle_view_command(
             .set_content_arrangement(ContentArrangement::Dynamic);
 
         table.set_header([
-            "#",
-            "Tracking",
-            "Running",
-            "Name",
-            "Duration",
-            "Notes",
-            "Last seen",
-            "Date added",
+            Cell::new("#").set_alignment(CellAlignment::Center),
+            Cell::new("Tracking").set_alignment(CellAlignment::Center),
+            Cell::new("Running").set_alignment(CellAlignment::Center),
+            Cell::new("Name").set_alignment(CellAlignment::Center),
+            Cell::new("Duration").set_alignment(CellAlignment::Center),
+            Cell::new("Notes").set_alignment(CellAlignment::Center),
+            Cell::new("Last seen").set_alignment(CellAlignment::Center),
+            Cell::new("Date added").set_alignment(CellAlignment::Center),
         ]);
 
         for (id, process) in processes {
@@ -49,11 +49,14 @@ pub fn handle_view_command(
                 Cell::new(id),
                 Cell::new(tracking_icon).set_alignment(CellAlignment::Center),
                 Cell::new(running_icon).set_alignment(CellAlignment::Center),
-                Cell::new(&process.name),
-                Cell::new(duration_to_string(process.duration)),
-                Cell::new(&process.notes),
-                Cell::new(process.last_seen_date.format("%Y/%m/%d %H:%M:%S")),
-                Cell::new(process.added_date.format("%Y/%m/%d %H:%M:%S")),
+                Cell::new(&process.name).set_alignment(CellAlignment::Center),
+                Cell::new(duration_to_string(process.duration))
+                    .set_alignment(CellAlignment::Center),
+                Cell::new(&process.notes).set_alignment(CellAlignment::Center),
+                Cell::new(process.last_seen_date.format("%Y/%m/%d %H:%M:%S"))
+                    .set_alignment(CellAlignment::Center),
+                Cell::new(process.added_date.format("%Y/%m/%d %H:%M:%S"))
+                    .set_alignment(CellAlignment::Center),
             ]);
         }
 
