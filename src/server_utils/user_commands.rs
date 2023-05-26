@@ -25,7 +25,6 @@ pub async fn get_processes(
             .iter()
             .enumerate()
             .filter(|(id, _)| range.contains(id))
-            .map(|(id, process)| (id, process))
             .collect()
     } else {
         // We must make this into an owned Vec of Process references so this type matches with the above
