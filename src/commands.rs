@@ -4,15 +4,6 @@ use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
-pub struct View {
-    /// The process IDs to show in 0-3,5,7 format
-    pub ids: Option<String>,
-    /// Debug print the processes
-    #[arg(short, long, default_value_t = false)]
-    pub debug: bool,
-}
-
-#[derive(Debug, Parser, Serialize, Deserialize)]
 pub struct Add {
     /// Name of the process to track. If unsure what the process is called, use the "processes" command to view all running processes
     /// with the names that Simple process tracker will use to track them
@@ -32,22 +23,12 @@ pub struct Add {
 }
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
-pub struct Remove {
-    pub id: usize,
-}
-
-#[derive(Debug, Parser, Serialize, Deserialize)]
-#[group(required = true)]
-pub struct Config {
-    /// How often to check if the tracked processes are still running in seconds
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(crate::MIN_POLL_INTERVAL..))]
-    pub poll_interval: Option<u64>,
-    /// How often to update the durations for processes that are currently running in seconds
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(crate::MIN_DURATION_UPDATE_INTERVAL..))]
-    pub duration_update_interval: Option<u64>,
-    /// How often to autosave in case the program quits unexpectedly in seconds
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(crate::MIN_AUTOSAVE_INTERVAL..))]
-    pub autosave_interval: Option<u64>,
+pub struct View {
+    /// The process IDs to show in 0-3,5,7 format
+    pub ids: Option<String>,
+    /// Debug print the processes
+    #[arg(short, long, default_value_t = false)]
+    pub debug: bool,
 }
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
@@ -80,6 +61,18 @@ pub struct Duration {
 }
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
+pub struct Remove {
+    pub id: usize,
+}
+
+#[derive(Debug, Parser, Serialize, Deserialize)]
+pub struct Move {
+    pub id: usize,
+    #[command(subcommand)]
+    pub direction: MoveDirection,
+}
+
+#[derive(Debug, Parser, Serialize, Deserialize)]
 pub struct Export {
     /// Where to save the exported JSON file
     pub path: PathBuf,
@@ -96,10 +89,17 @@ pub struct Import {
 }
 
 #[derive(Debug, Parser, Serialize, Deserialize)]
-pub struct Move {
-    pub id: usize,
-    #[command(subcommand)]
-    pub direction: MoveDirection,
+#[group(required = true)]
+pub struct Config {
+    /// How often to check if the tracked processes are still running in seconds
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(crate::MIN_POLL_INTERVAL..))]
+    pub poll_interval: Option<u64>,
+    /// How often to update the durations for processes that are currently running in seconds
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(crate::MIN_DURATION_UPDATE_INTERVAL..))]
+    pub duration_update_interval: Option<u64>,
+    /// How often to autosave in case the program quits unexpectedly in seconds
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(crate::MIN_AUTOSAVE_INTERVAL..))]
+    pub autosave_interval: Option<u64>,
 }
 
 #[derive(Debug, Subcommand, Serialize, Deserialize)]
@@ -124,30 +124,27 @@ pub enum Commands {
     /// Launch Simple process tracker and begin tracking selected processes
     Launch,
 
-    /// Show all processes if no IDs are given. Otherwise show the processes with the given IDs.
-    /// Example: show 0-3,5,7
-    View(View),
-
-    /// Show Simple process tracker's configuration
-    Settings,
-
     /// List all processes running on the system with the names that Simple process tracker will use to check if they are active
     Processes,
 
     /// Add a process to track. Optionally add it with specific options set in advance
     Add(Add),
 
-    /// Remove a process given its ID
-    Remove(Remove),
-
-    /// Set options for Simple process tracker
-    Option(Config),
+    /// Show all processes if no IDs are given. Otherwise show the processes with the given IDs.
+    /// Example: show 0-3,5,7
+    View(View),
 
     /// Change some data about a specific process, such as its duration, notes, icon, etc.
     Change(Change),
 
     /// Add or subtract seconds from a process's duration
     Duration(Duration),
+
+    /// Remove a process given its ID
+    Remove(Remove),
+
+    /// Update a process's ID to move it up, down, top or bottom
+    Move(Move),
 
     /// Export all processes to the given path if no IDs are given.
     /// Otherwise export the processes with the given IDs.
@@ -157,8 +154,11 @@ pub enum Commands {
     /// Import processes from the given JSON file. Example: import "./export.json"
     Import(Import),
 
-    /// Update a process's ID to move it up, down, top or bottom
-    Move(Move),
+    /// Set options for Simple process tracker
+    Option(Config),
+
+    /// Show Simple process tracker's configuration
+    Settings,
 
     /// Save and close Simple process tracker
     Quit,
