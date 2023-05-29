@@ -25,7 +25,7 @@ pub async fn save_data(
 
     // We use lock files to prevent a conflict in case this function is called twice simultaneously:
     // once in the autosave thread and once in the handle_user_command thread during server close
-    if config_lock.exists() {
+    while config_lock.exists() {
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
 
@@ -36,7 +36,7 @@ pub async fn save_data(
     serde_json::to_writer_pretty(config_file, &*config.read().await)?;
     _ = std::fs::remove_file(config_lock);
 
-    if processes_lock.exists() {
+    while processes_lock.exists() {
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
 
