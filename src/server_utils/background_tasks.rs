@@ -84,7 +84,7 @@ pub async fn check_running_processes(config: &RwLock<Config>, processes: &RwLock
         match get_running_processes().await {
             Ok(process_list) => {
                 for process in processes.write().await.0.iter_mut() {
-                    if process_list.contains(&process.name) && process.is_tracked {
+                    if process.is_tracked && process_list.contains(&process.name) {
                         process.is_running = true;
                         process.last_seen_date = chrono::prelude::Local::now().naive_local();
                     } else {
