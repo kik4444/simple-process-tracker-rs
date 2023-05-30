@@ -14,6 +14,10 @@ pub async fn save_data(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let config_dir = get_config_dir().ok_or_else(|| "cannot find config dir".to_string())?;
 
+    if !config_dir.exists() {
+        tokio::fs::create_dir_all(&config_dir).await?;
+    }
+
     let config_path = config_dir.join("config.json");
     let config_lock = config_path.with_extension("lock");
 
