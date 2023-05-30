@@ -10,8 +10,10 @@ pub async fn get_running_processes() -> Result<HashSet<String>, Box<dyn Error + 
     let mut process_list = HashSet::with_capacity(300);
 
     while let Ok(Some(dir)) = pids.next_entry().await {
-        if let Ok(process_short_name) = tokio::fs::read_to_string(dir.path().join("comm")).await {
-            process_list.insert(process_short_name.trim().to_owned());
+        if let Ok(name) = tokio::fs::read_link(dir.path().join("exe")).await {
+            if let Some(name) = name.file_name() {
+                process_list.insert(name.to_string_lossy().to_string());
+            }
         }
     }
 
