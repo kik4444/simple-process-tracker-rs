@@ -1,4 +1,4 @@
-use futures_lite::{io::BufReader, AsyncReadExt, AsyncWriteExt};
+use futures_lite::{io::BufReader, AsyncBufReadExt, AsyncWriteExt};
 use interprocess::local_socket::tokio::LocalSocketStream;
 
 use crate::{
@@ -23,15 +23,13 @@ async fn send_command(command: Commands) -> Result<(), Box<dyn std::error::Error
 
     let (reader, mut writer) = conn.into_split();
 
-    let serialized = serde_json::to_string(&command)?;
+    // The client and server read all data until the first new line symbol, so we have to manually add one when sending data
+    let serialized = serde_json::to_string(&command)? + "\n";
     writer.write_all(serialized.as_bytes()).await?;
-
-    // We must free the writer otherwise the server cannot respond on the pipe to the client
-    drop(writer);
 
     let mut reader = BufReader::new(reader);
     let mut buffer = String::with_capacity(256);
-    reader.read_to_string(&mut buffer).await?;
+    reader.read_line(&mut buffer).await?;
 
     let response: Result<String, String> = serde_json::from_str(&buffer)
         .map_err(|e| format!("failed parsing server response -> {e}"))?;

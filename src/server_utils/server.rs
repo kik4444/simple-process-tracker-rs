@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use futures_lite::{io::BufReader, AsyncReadExt, AsyncWriteExt};
+use futures_lite::{io::BufReader, AsyncBufReadExt, AsyncWriteExt};
 use interprocess::local_socket::tokio::{LocalSocketListener, LocalSocketStream};
 
 use tokio::sync::RwLock;
@@ -82,7 +82,7 @@ async fn handle_user_command(
 
     let mut reader = BufReader::new(reader);
     let mut buffer = String::with_capacity(256);
-    _ = reader.read_to_string(&mut buffer).await;
+    _ = reader.read_line(&mut buffer).await;
 
     let command: Commands = serde_json::from_str(&buffer).expect("must not fail");
 
@@ -103,7 +103,7 @@ async fn handle_user_command(
     }
     .map_err(|e| e.to_string());
 
-    let serialized = serde_json::to_string(&response).expect("must serialize");
+    let serialized = serde_json::to_string(&response).expect("must serialize") + "\n";
 
     _ = writer.write_all(serialized.as_bytes()).await;
 
