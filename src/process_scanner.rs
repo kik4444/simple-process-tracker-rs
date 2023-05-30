@@ -7,7 +7,7 @@ pub async fn get_running_processes() -> Result<HashSet<String>, Box<dyn Error + 
         .await
         .map_err(|e| format!("error reading /proc -> {e}"))?;
 
-    let mut process_list = HashSet::new();
+    let mut process_list = HashSet::with_capacity(300);
 
     while let Ok(Some(dir)) = pids.next_entry().await {
         if let Ok(process_short_name) = tokio::fs::read_to_string(dir.path().join("comm")).await {
